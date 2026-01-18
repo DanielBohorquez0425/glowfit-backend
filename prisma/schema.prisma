@@ -26,10 +26,25 @@ model User {
   bmi                    Float?
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]
+  refresh_tokens         RefreshToken[]
   goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
   @@map("users")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.Uuid
+  token      String   @unique
+  user_id    String   @db.Uuid
+  expires_at DateTime
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([token], map: "idx_refresh_token_token")
+  @@index([user_id], map: "idx_refresh_token_user_id")
+  @@index([expires_at], map: "idx_refresh_token_expires_at")
+  @@map("refresh_tokens")
 }
 
 model MuscleGroup {

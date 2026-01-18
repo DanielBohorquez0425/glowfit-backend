@@ -1,12 +1,21 @@
 import jwt from 'jsonwebtoken';
-import { JWT_CONFIG } from './jwtConfig.js';
+import crypto from 'crypto';
+import { JWT_CONFIG } from '../config/jwtConfig.js';
 
-export const generateToken = (userId, email) => {
+export const generateAccessToken = (userId, email) => {
   return jwt.sign(
     { userId, email },
     JWT_CONFIG.secret,
-    { expiresIn: JWT_CONFIG.expiresIn }
+    { expiresIn: JWT_CONFIG.accessTokenExpiresIn }
   );
+};
+
+export const generateRefreshToken = () => {
+  return crypto.randomBytes(64).toString('hex');
+};
+
+export const getRefreshTokenExpiry = () => {
+  return new Date(Date.now() + JWT_CONFIG.refreshTokenExpiresInMs);
 };
 
 export const verifyToken = (token) => {
@@ -16,3 +25,6 @@ export const verifyToken = (token) => {
     return null;
   }
 };
+
+// Mantener compatibilidad con código existente
+export const generateToken = generateAccessToken;

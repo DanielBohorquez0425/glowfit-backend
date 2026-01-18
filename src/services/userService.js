@@ -1,6 +1,11 @@
 import * as userRepository from "../repositories/userRepository.js";
+import * as refreshTokenRepository from "../repositories/refreshTokenRepository.js";
 import bcrypt from "bcryptjs";
-import { generateToken } from "../utils/jwtUtils.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  getRefreshTokenExpiry,
+} from "../utils/jwtUtils.js";
 
 const calculateBMI = (weight, height) => {
   if (!weight || !height || weight <= 0 || height <= 0) {
@@ -44,10 +49,18 @@ export const register = async (userData) => {
     gender: gender || null,
   });
 
-  const token = generateToken(newUser.id, newUser.email);
+  const accessToken = generateAccessToken(newUser.id, newUser.email);
+  const refreshToken = generateRefreshToken();
+
+  await refreshTokenRepository.create({
+    token: refreshToken,
+    user_id: newUser.id,
+    expires_at: getRefreshTokenExpiry(),
+  });
+
   const { password: _, ...userWithoutPassword } = newUser;
 
-  return { user: userWithoutPassword, token };
+  return { user: userWithoutPassword, accessToken, refreshToken };
 };
 
 export const login = async (email, password) => {
@@ -61,10 +74,58 @@ export const login = async (email, password) => {
     throw new Error("Credenciales inválidas");
   }
 
-  const token = generateToken(user.id, user.email);
+  const accessToken = generateAccessToken(user.id, user.email);
+  const refreshToken = generateRefreshToken();
+
+  await refreshTokenRepository.create({
+    token: refreshToken,
+    user_id: user.id,
+    expires_at: getRefreshTokenExpiry(),
+  });
+
   const { password: _, ...userWithoutPassword } = user;
 
-  return { user: userWithoutPassword, token };
+  return { user: userWithoutPassword, accessToken, refreshToken };
+};
+
+export const logout = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new Error("Refresh token es requerido");
+  }
+
+  const tokenRecord = await refreshTokenRepository.findByToken(refreshToken);
+  if (!tokenRecord) {
+    throw new Error("Refresh token inválido");
+  }
+
+  await refreshTokenRepository.deleteByToken(refreshToken);
+  return { message: "Sesión cerrada exitosamente" };
+};
+
+export const logoutAllSessions = async (userId) => {
+  await refreshTokenRepository.deleteAllByUserId(userId);
+  return { message: "Todas las sesiones han sido cerradas" };
+};
+
+export const refreshAccessToken = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new Error("Refresh token es requerido");
+  }
+
+  const tokenRecord = await refreshTokenRepository.findByToken(refreshToken);
+  if (!tokenRecord) {
+    throw new Error("Refresh token inválido");
+  }
+
+  if (new Date() > tokenRecord.expires_at) {
+    await refreshTokenRepository.deleteByToken(refreshToken);
+    throw new Error("Refresh token expirado");
+  }
+
+  const user = tokenRecord.user;
+  const newAccessToken = generateAccessToken(user.id, user.email);
+
+  return { accessToken: newAccessToken };
 };
 
 export const getUsers = async () => {
