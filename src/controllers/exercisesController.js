@@ -2,7 +2,7 @@ import * as exerciseService from "../services/exerciseService.js";
 
 export const getExercises = async (req, res) => {
   try {
-    const { limit, page, muscleGroupId, includeRelations, link } = req.query;
+    const { limit, page, muscleGroupId, includeRelations, link, difficulty } = req.query;
 
     const parsedLimit = limit ? parseInt(limit) : 10;
     const parsedPage = page ? parseInt(page) : 1;
@@ -14,6 +14,7 @@ export const getExercises = async (req, res) => {
       muscleGroupId,
       includeRelations: includeRelations === "true",
       link,
+      difficulty,
     };
 
     const result = await exerciseService.getExercises(options);

@@ -7,11 +7,15 @@ export const findAll = async (options = {}) => {
     muscleGroupId,
     includeRelations = false,
     link,
+    difficulty,
   } = options;
 
   const where = {};
   if (muscleGroupId) {
     where.muscle_group_id = muscleGroupId;
+  }
+  if (difficulty) {
+    where.difficulty = difficulty;
   }
 
   const include = includeRelations
