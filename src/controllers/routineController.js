@@ -5,7 +5,14 @@ import * as exerciseService from "../services/exerciseService.js";
 
 export const createRoutine = async (req, res) => {
   try {
-    const routine = await routineService.createRoutine(req.body);
+    const userId = req.user.userId;
+
+    const routineData = {
+      ...req.body,
+      user_id: userId,
+    };
+
+    const routine = await routineService.createRoutine(routineData);
     res.status(201).json(routine);
   } catch (error) {
     res
@@ -30,13 +37,10 @@ export const generateAIRoutine = async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    // Obtener perfil del usuario
     const userProfile = await userService.getUserById(userId);
     if (!userProfile) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
-
-    // Obtener ejercicios disponibles
     const { exercises } = await exerciseService.getExercises();
     if (!exercises || exercises.length === 0) {
       return res.status(400).json({ error: "No hay ejercicios disponibles" });
@@ -45,14 +49,13 @@ export const generateAIRoutine = async (req, res) => {
     // Generar rutinas con IA (ahora devuelve múltiples rutinas)
     const aiResponse = await aiService.generateRoutineWithAI(
       userProfile,
-      exercises
+      exercises,
     );
 
     // Procesar y guardar cada rutina individualmente
     const savedRoutines = [];
 
     for (const aiRoutine of aiResponse.routines) {
-      // Convertir el campo 'day' (número) a 'days' (array) para compatibilidad con el repositorio
       const routineData = {
         name: aiRoutine.name,
         description: aiRoutine.description,
@@ -61,7 +64,7 @@ export const generateAIRoutine = async (req, res) => {
         goal: aiRoutine.goal,
         user_id: userId,
         is_active: true,
-        days: [aiRoutine.day], // Convertir el día único a un array
+        days: [aiRoutine.day],
         exercises: aiRoutine.exercises,
       };
 
