@@ -29,6 +29,7 @@ export const register = async (userData) => {
     weight,
     height,
     gender,
+    bmi,
   } = userData;
 
   const existingUser = await userRepository.findByEmail(email);
@@ -47,6 +48,7 @@ export const register = async (userData) => {
     weight: weight || null,
     height: height || null,
     gender: gender || null,
+    bmi: bmi || null,
   });
 
   const accessToken = generateAccessToken(newUser.id, newUser.email);
