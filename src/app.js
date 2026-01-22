@@ -5,6 +5,7 @@ import exercisesRoutes from "./routes/exercisesRoutes.js";
 import indexRoutes from "./routes/index.js";
 import muscleGroupRoutes from "./routes/muscleGroupRoutes.js";
 import routineRoutes from "./routes/routineRoutes.js";
+import xpRoutes from "./routes/xpRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
 
@@ -44,5 +45,8 @@ app.use("/muscle-groups", muscleGroupRoutes);
 
 // Rutas de rutinas
 app.use("/routines", routineRoutes);
+
+// Rutas de XP
+app.use("/xp", xpRoutes);
 
 export default app;

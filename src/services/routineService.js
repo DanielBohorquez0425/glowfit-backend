@@ -1,4 +1,5 @@
 import * as routineRepository from "../repositories/routineRepository.js";
+import * as xpService from "./xpService.js";
 
 export const createRoutine = async (data) => {
   // Aquí se pueden agregar validaciones adicionales si es necesario
@@ -23,7 +24,33 @@ export const markRoutineAsCompleted = async (routineId, userId) => {
   if (!userId) {
     throw new Error("El ID del usuario es obligatorio");
   }
-  return await routineRepository.markRoutineAsCompleted(routineId, userId);
+
+  const routine = await routineRepository.markRoutineAsCompleted(
+    routineId,
+    userId
+  );
+
+  const completionId = routine.routine_completions?.[0]?.id;
+
+  try {
+    const xpResult = await xpService.awardXp(userId, "COMPLETE_ROUTINE", {
+      routine_id: routineId,
+      routine_name: routine.name,
+      routine_completion_id: completionId,
+    });
+
+    return {
+      routine,
+      xpResult,
+    };
+  } catch (xpError) {
+    console.error("Error al otorgar XP:", xpError);
+    return {
+      routine,
+      xpResult: null,
+      xpError: xpError.message,
+    };
+  }
 };
 
 export const updateRoutine = async (id, data) => {
