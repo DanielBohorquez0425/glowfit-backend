@@ -1,5 +1,4 @@
 import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import { JWT_CONFIG } from '../config/jwtConfig.js';
 
 export const generateAccessToken = (userId, email) => {
@@ -8,14 +7,6 @@ export const generateAccessToken = (userId, email) => {
     JWT_CONFIG.secret,
     { expiresIn: JWT_CONFIG.accessTokenExpiresIn }
   );
-};
-
-export const generateRefreshToken = () => {
-  return crypto.randomBytes(64).toString('hex');
-};
-
-export const getRefreshTokenExpiry = () => {
-  return new Date(Date.now() + JWT_CONFIG.refreshTokenExpiresInMs);
 };
 
 export const verifyToken = (token) => {

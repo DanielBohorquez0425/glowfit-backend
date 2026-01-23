@@ -49,57 +49,6 @@ export const login = async (req, res) => {
   }
 };
 
-// Logout de usuario
-export const logout = async (req, res) => {
-  const { refreshToken } = req.body;
-
-  try {
-    const result = await userService.logout(refreshToken);
-    return res.status(200).json(result);
-  } catch (error) {
-    if (error.message === "Refresh token es requerido") {
-      return res.status(400).json({ error: error.message });
-    }
-    if (error.message === "Refresh token inválido") {
-      return res.status(401).json({ error: error.message });
-    }
-    console.error("Error en logout:", error);
-    return res.status(500).json({ error: "Error interno del servidor" });
-  }
-};
-
-// Cerrar todas las sesiones del usuario
-export const logoutAllSessions = async (req, res) => {
-  try {
-    const result = await userService.logoutAllSessions(req.user.userId);
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error("Error al cerrar sesiones:", error);
-    return res.status(500).json({ error: "Error interno del servidor" });
-  }
-};
-
-// Refrescar access token
-export const refreshToken = async (req, res) => {
-  const { refreshToken } = req.body;
-
-  try {
-    const result = await userService.refreshAccessToken(refreshToken);
-    return res.status(200).json(result);
-  } catch (error) {
-    if (error.message === "Refresh token es requerido") {
-      return res.status(400).json({ error: error.message });
-    }
-    if (
-      error.message === "Refresh token inválido" ||
-      error.message === "Refresh token expirado"
-    ) {
-      return res.status(401).json({ error: error.message });
-    }
-    console.error("Error al refrescar token:", error);
-    return res.status(500).json({ error: "Error interno del servidor" });
-  }
-};
 
 // Obtener usuarios (protegido)
 export const getUsers = async (req, res) => {
