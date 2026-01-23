@@ -58,99 +58,43 @@ export const generateRoutineWithAI = async (userProfile, exercises) => {
       ? trainingDays.map((dayId) => `${dayId} (${dayNames[dayId]})`).join(", ")
       : "No especificado";
 
-  const prompt = `Eres un entrenador personal profesional certificado con experiencia en periodización del entrenamiento. Genera un plan de entrenamiento completo y personalizado basándote en el siguiente perfil de usuario:
+  // Formato compacto de ejercicios para reducir tokens
+  const exercisesCompact = exercises.map((ex) => `${ex.id}|${ex.name}|G${ex.muscle_group_id}`).join("\n");
 
-PERFIL DEL USUARIO:
-- Peso: ${userProfile.weight || "No especificado"} kg
-- Altura: ${userProfile.height || "No especificado"} cm
-- Edad: ${age || "No especificado"} años
-- Género: ${userProfile.gender || "No especificado"}
-- Objetivo: ${userProfile.goal || "General fitness"}
-- Tiene discapacidad: ${
-    userProfile.has_disability === true
-      ? "Sí"
-      : userProfile.has_disability === false
-      ? "No"
-      : "No especificado"
-  }
-- Descripción de discapacidad: ${
-    userProfile.disability_description || "No especificado"
-  }
-- Días disponibles para entrenar: ${trainingDaysFormatted}
+  const prompt = `Entrenador personal: Crea plan de entrenamiento personalizado.
 
-INSTRUCCIONES IMPORTANTES:
+PERFIL:
+Peso: ${userProfile.weight || "N/A"}kg | Altura: ${userProfile.height || "N/A"}cm | Edad: ${age || "N/A"} | Género: ${userProfile.gender || "N/A"}
+Objetivo: ${userProfile.goal || "General fitness"}
+${userProfile.has_disability ? `Discapacidad: ${userProfile.disability_description || "Sí"}` : ""}
+Días: ${trainingDaysFormatted}
 
-1. SEGURIDAD Y ADAPTACIONES:
-   - Si el usuario tiene alguna discapacidad, adapta TODOS los ejercicios para que sean seguros y apropiados según la descripción proporcionada
-   - Evita ejercicios que puedan ser contraproducentes o peligrosos para su condición
-   - Sugiere modificaciones o ejercicios alternativos cuando sea necesario
+REGLAS:
+1. Si hay discapacidad, adapta ejercicios para seguridad
+2. ${trainingDays.length > 0 ? `Crea ${trainingDays.length} rutinas (días: ${trainingDays.join(", ")}) con grupos musculares diferentes` : "Genera 3 rutinas balanceadas"}
+3. 6-10 ejercicios/rutina
+4. Sets: 2-5 | Reps según objetivo (fuerza:4-6, hipertrofia:8-12, resistencia:15-20) | Rest: 45-180s
+5. Considera edad y nivel
 
-2. ESTRUCTURA DEL PLAN:
-   ${
-     trainingDays.length > 0
-       ? `- Debes crear UNA RUTINA DIFERENTE para CADA UNO de los siguientes días: ${trainingDaysFormatted}
-   - Cada rutina debe enfocarse en grupos musculares diferentes para permitir recuperación adecuada
-   - Distribuye los grupos musculares de forma balanceada a lo largo de la semana
-   - Por ejemplo: Si hay 3 días (Lunes, Miércoles, Viernes), podrías hacer:
-     * Lunes: Pecho, hombros y tríceps
-     * Miércoles: Piernas y abdomen
-     * Viernes: Espalda, bíceps y core`
-       : "- Genera rutinas para los días que consideres apropiados según el objetivo del usuario"
-   }
+EJERCICIOS (formato: ID|Nombre|Grupo):
+${exercisesCompact}
 
-3. EJERCICIOS DISPONIBLES:
-${JSON.stringify(exerciseList, null, 2)}
-
-4. PERSONALIZACIÓN POR DÍA:
-   - Cada rutina debe tener entre 6-10 ejercicios adaptados al nivel del usuario
-   - Varía la intensidad, volumen y ejercicios según el día de la semana
-   - Considera el principio de especificidad según el objetivo del usuario (${
-     userProfile.goal || "General fitness"
-   })
-   - Ajusta series, repeticiones y tiempos de descanso según:
-     * Edad del usuario: ${age || "No especificado"} años
-     * Nivel estimado: Considera el perfil completo
-     * Objetivo: ${userProfile.goal || "General fitness"}
-
-5. PARÁMETROS DE ENTRENAMIENTO:
-   - Sets: 2-5 series según el nivel (principiante: 2-3, intermedio: 3-4, avanzado: 4-5)
-   - Reps: Varía según objetivo (fuerza: 4-6, hipertrofia: 8-12, resistencia: 15-20)
-   - Rest_time: Ajusta según tipo de ejercicio (compuestos: 90-180 seg, aislamiento: 45-90 seg)
-   - Estimated_duration: Calcula tiempo real (ejercicios + descansos + calentamiento)
-
-IMPORTANTE: Responde ÚNICAMENTE con un JSON válido con la siguiente estructura exacta, sin texto adicional antes o después:
+Responde SOLO JSON:
 {
   "routines": [
     {
-      "name": "Nombre descriptivo de la rutina para este día (ej: 'Rutina Lunes - Pecho y Tríceps')",
-      "description": "Descripción breve y motivadora de la rutina del día, mencionando grupos musculares trabajados",
+      "name": "Rutina [Día] - [Grupos]",
+      "description": "Breve descripción",
       "estimated_duration": 60,
       "level": "principiante|intermedio|avanzado",
       "goal": "${userProfile.goal || "General fitness"}",
       "day": 1,
-      "exercises": [
-        {
-          "exercise_id": "uuid del ejercicio de la lista",
-          "order_position": 1,
-          "sets": 3,
-          "reps": 12,
-          "rest_time": 60,
-          "notes": "Nota con consejos de ejecución, adaptaciones o motivación"
-        }
-      ]
+      "exercises": [{"exercise_id": "uuid", "order_position": 1, "sets": 3, "reps": 12, "rest_time": 60, "notes": "Consejo breve"}]
     }
   ]
 }
 
-RECORDATORIO FINAL:
-- Los días son: 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado, 7=Domingo
-- Cada objeto en el array "routines" debe tener un "day" ÚNICO (no repetir días)
-- SOLO usa exercise_id que existan en la lista de ejercicios proporcionada
-- Genera exactamente ${
-    trainingDays.length || 3
-  } rutina(s), una para cada día disponible del usuario
-- Asegúrate de que cada rutina sea DIFERENTE y complementaria con las demás
-- El JSON debe ser válido y parseable`;
+IMPORTANTE: Usa SOLO exercise_id de la lista. Genera ${trainingDays.length || 3} rutinas con días únicos (1-7). No repetir días.`;
 
   try {
     const completion = await groq.chat.completions.create({
