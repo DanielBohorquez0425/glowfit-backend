@@ -48,14 +48,22 @@ export const createRoutine = async (data) => {
   });
 };
 
-export const getRoutinesByUserId = async (userId) => {
-  return await prisma.routines.findMany({
+export const getRoutineById = async (routineId) => {
+  return await prisma.routines.findUnique({
     where: {
-      user_id: userId,
+      id: routineId,
     },
     include: {
       routine_days: true,
       routine_exercises: true,
+    },
+  });
+};
+
+export const getRoutinesByUserId = async (userId) => {
+  return await prisma.routines.findMany({
+    where: {
+      user_id: userId,
     },
     include: {
       routine_days: true,

@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post("/", authenticateToken, routineController.createRoutine);
 router.get("/user/:userId", routineController.getRoutinesByUser);
+router.get("/:id", routineController.getRoutineById);
 router.put("/:id", routineController.updateRoutine);
 router.post(
   "/generate-ai",

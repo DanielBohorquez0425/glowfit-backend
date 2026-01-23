@@ -21,6 +21,19 @@ export const createRoutine = async (req, res) => {
   }
 };
 
+export const getRoutineById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const routine = await routineService.getRoutineById(id);
+    res.json(routine);
+  } catch (error) {
+    const status = error.message === "Rutina no encontrada" ? 404 : 500;
+    res
+      .status(status)
+      .json({ error: error.message || "Error al obtener la rutina" });
+  }
+};
+
 export const getRoutinesByUser = async (req, res) => {
   try {
     const { userId } = req.params;

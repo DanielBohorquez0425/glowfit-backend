@@ -10,6 +10,17 @@ export const createRoutine = async (data) => {
   return await routineRepository.createRoutine(data);
 };
 
+export const getRoutineById = async (routineId) => {
+  if (!routineId) {
+    throw new Error("El ID de la rutina es obligatorio");
+  }
+  const routine = await routineRepository.getRoutineById(routineId);
+  if (!routine) {
+    throw new Error("Rutina no encontrada");
+  }
+  return routine;
+};
+
 export const getRoutinesByUserId = async (userId) => {
   if (!userId) {
     throw new Error("El ID de usuario es obligatorio");
