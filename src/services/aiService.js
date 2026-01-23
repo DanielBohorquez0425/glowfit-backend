@@ -58,43 +58,86 @@ export const generateRoutineWithAI = async (userProfile, exercises) => {
       ? trainingDays.map((dayId) => `${dayId} (${dayNames[dayId]})`).join(", ")
       : "No especificado";
 
+  // Agrupar ejercicios por grupo muscular y tomar solo 8 por grupo
+  const exercisesByGroup = exercises.reduce((acc, ex) => {
+    if (!acc[ex.muscle_group_id]) {
+      acc[ex.muscle_group_id] = [];
+    }
+    acc[ex.muscle_group_id].push(ex);
+    return acc;
+  }, {});
+
+  // Tomar máximo 8 ejercicios por grupo muscular
+  const filteredExercises = [];
+  Object.keys(exercisesByGroup).forEach((groupId) => {
+    const groupExercises = exercisesByGroup[groupId].slice(0, 8);
+    filteredExercises.push(...groupExercises);
+  });
+
   // Formato compacto de ejercicios para reducir tokens
-  const exercisesCompact = exercises.map((ex) => `${ex.id}|${ex.name}|G${ex.muscle_group_id}`).join("\n");
+  const exercisesCompact = filteredExercises.map((ex) => `${ex.id}|${ex.name}|G${ex.muscle_group_id}`).join("\n");
 
-  const prompt = `Entrenador personal: Crea plan de entrenamiento personalizado.
+  const prompt = `
+TAREA
+Genera rutinas de entrenamiento estructuradas según el perfil del usuario.
 
-PERFIL:
-Peso: ${userProfile.weight || "N/A"}kg | Altura: ${userProfile.height || "N/A"}cm | Edad: ${age || "N/A"} | Género: ${userProfile.gender || "N/A"}
-Objetivo: ${userProfile.goal || "General fitness"}
-${userProfile.has_disability ? `Discapacidad: ${userProfile.disability_description || "Sí"}` : ""}
-Días: ${trainingDaysFormatted}
+PERFIL
+Peso: ${userProfile.weight ?? "N/A"} kg
+Altura: ${userProfile.height ?? "N/A"} cm
+Edad: ${age ?? "N/A"}
+Género: ${userProfile.gender ?? "N/A"}
+Objetivo: ${userProfile.goal ?? "general"}
+Días disponibles: ${trainingDaysFormatted}
 
-REGLAS:
-1. Si hay discapacidad, adapta ejercicios para seguridad
-2. ${trainingDays.length > 0 ? `Crea ${trainingDays.length} rutinas (días: ${trainingDays.join(", ")}) con grupos musculares diferentes` : "Genera 3 rutinas balanceadas"}
-3. 6-10 ejercicios/rutina
-4. Sets: 2-5 | Reps según objetivo (fuerza:4-6, hipertrofia:8-12, resistencia:15-20) | Rest: 45-180s
-5. Considera edad y nivel
+REGLAS OBLIGATORIAS
+- Genera ${trainingDays.length || 3} rutinas con días únicos (1–7)
+- Máximo 6 ejercicios por rutina
+- No repitas ejercicios dentro de la misma rutina
+- Ajusta volumen e intensidad según edad y objetivo
+- Si hay discapacidad, evita ejercicios inseguros
+- Usa SOLO exercise_id proporcionados
+- No inventes ejercicios
+- No incluyas texto explicativo
 
-EJERCICIOS (formato: ID|Nombre|Grupo):
+PARÁMETROS
+- Sets: 2–5
+- Reps:
+  - Fuerza: 4–6
+  - Hipertrofia: 8–12
+  - Resistencia: 15–20
+- Descanso: 45–180 segundos
+
+EJERCICIOS DISPONIBLES
+Formato: id|nombre|grupo
 ${exercisesCompact}
 
-Responde SOLO JSON:
+FORMATO DE RESPUESTA
+Devuelve EXCLUSIVAMENTE un JSON válido.
+No incluyas texto fuera del JSON.
+No incluyas descripciones ni notas.
+
+Estructura exacta:
 {
   "routines": [
     {
-      "name": "Rutina [Día] - [Grupos]",
-      "description": "Breve descripción",
+      "name": "string",
       "estimated_duration": 60,
       "level": "principiante|intermedio|avanzado",
-      "goal": "${userProfile.goal || "General fitness"}",
+      "goal": "${userProfile.goal ?? "general"}",
       "day": 1,
-      "exercises": [{"exercise_id": "uuid", "order_position": 1, "sets": 3, "reps": 12, "rest_time": 60, "notes": "Consejo breve"}]
+      "exercises": [
+        {
+          "exercise_id": "uuid",
+          "order_position": 1,
+          "sets": 3,
+          "reps": 10,
+          "rest_time": 60
+        }
+      ]
     }
   ]
 }
-
-IMPORTANTE: Usa SOLO exercise_id de la lista. Genera ${trainingDays.length || 3} rutinas con días únicos (1-7). No repetir días.`;
+`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -105,8 +148,8 @@ IMPORTANTE: Usa SOLO exercise_id de la lista. Genera ${trainingDays.length || 3}
         },
       ],
       model: "llama-3.3-70b-versatile",
-      temperature: 0.7,
-      max_tokens: 2000,
+      temperature: 0.3,
+      max_tokens: 800,
     });
 
     const responseText = completion.choices[0]?.message?.content;
