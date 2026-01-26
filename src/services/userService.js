@@ -120,3 +120,22 @@ export const getUserActivity = async (userId, options) => {
 
   return await userRepository.getUserActivity(userId, options);
 };
+
+export const setActiveRoutineForDay = async (userId, day, routineId) => {
+  if (!userId) {
+    throw new Error("El ID del usuario es obligatorio");
+  }
+  if (!routineId) {
+    throw new Error("El ID de la rutina es obligatorio");
+  }
+  if (day === undefined || day === null) {
+    throw new Error("El día es obligatorio");
+  }
+
+  const dayNum = parseInt(day, 10);
+  if (isNaN(dayNum) || dayNum < 1 || dayNum > 7) {
+    throw new Error("El día debe ser un número entre 1 y 7");
+  }
+
+  return await userRepository.setActiveRoutineForDay(userId, dayNum, routineId);
+};

@@ -139,3 +139,89 @@ export const getUserActivity = async (userId, options = {}) => {
 
   return { completions, total };
 };
+
+/**
+ * Activa una rutina específica para un día, desactivando todas las demás rutinas
+ * activas del usuario para ese mismo día. Operación atómica con transacción.
+ */
+export const setActiveRoutineForDay = async (userId, day, routineId) => {
+  return await prisma.$transaction(
+    async (tx) => {
+      // 1. Validar que la rutina existe, pertenece al usuario y tiene el día asignado
+      const routine = await tx.routines.findFirst({
+        where: {
+          id: routineId,
+          user_id: userId,
+        },
+        include: {
+          routine_days: {
+            where: { day_id: day },
+          },
+        },
+      });
+
+      if (!routine) {
+        throw new Error("ROUTINE_NOT_FOUND");
+      }
+
+      if (routine.routine_days.length === 0) {
+        throw new Error("ROUTINE_NOT_ASSIGNED_TO_DAY");
+      }
+
+      // 2. Obtener todas las rutinas del usuario que tienen este día asignado
+      const routinesForDay = await tx.routines.findMany({
+        where: {
+          user_id: userId,
+          routine_days: {
+            some: { day_id: day },
+          },
+        },
+        select: {
+          id: true,
+          is_active: true,
+        },
+      });
+
+      const routineIdsToDeactivate = routinesForDay
+        .filter((r) => r.id !== routineId && r.is_active === true)
+        .map((r) => r.id);
+
+      // 3. Desactivar todas las rutinas activas para este día (excepto la que activaremos)
+      if (routineIdsToDeactivate.length > 0) {
+        await tx.routines.updateMany({
+          where: {
+            id: { in: routineIdsToDeactivate },
+          },
+          data: {
+            is_active: false,
+            updated_at: new Date(),
+          },
+        });
+      }
+
+      // 4. Activar la rutina indicada
+      await tx.routines.update({
+        where: { id: routineId },
+        data: {
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+
+      // 5. Construir la lista de rutinas afectadas
+      const affectedRoutines = routinesForDay.map((r) => ({
+        id: r.id,
+        isActive: r.id === routineId,
+      }));
+
+      return {
+        day,
+        activatedRoutineId: routineId,
+        affectedRoutines,
+      };
+    },
+    {
+      isolationLevel: "Serializable",
+    }
+  );
+};

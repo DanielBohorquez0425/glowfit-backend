@@ -206,3 +206,63 @@ export const getUserActivity = async (req, res) => {
     });
   }
 };
+
+// Activar una rutina específica para un día
+export const setActiveRoutine = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { day, routineId } = req.body;
+
+    // Autorización: el usuario solo puede modificar sus propias rutinas
+    if (req.user.userId !== userId) {
+      return res.status(403).json({
+        error: "No tienes permiso para modificar las rutinas de este usuario",
+      });
+    }
+
+    // Validar campos requeridos
+    if (day === undefined || day === null) {
+      return res.status(400).json({ error: "El campo 'day' es obligatorio" });
+    }
+    if (!routineId) {
+      return res
+        .status(400)
+        .json({ error: "El campo 'routineId' es obligatorio" });
+    }
+
+    const result = await userService.setActiveRoutineForDay(
+      userId,
+      day,
+      routineId
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error al activar rutina:", error);
+
+    if (error.message === "ROUTINE_NOT_FOUND") {
+      return res.status(404).json({
+        error: "La rutina no existe o no pertenece al usuario",
+      });
+    }
+
+    if (error.message === "ROUTINE_NOT_ASSIGNED_TO_DAY") {
+      return res.status(400).json({
+        error: "La rutina no está asignada al día especificado",
+      });
+    }
+
+    if (
+      error.message === "El día debe ser un número entre 1 y 7" ||
+      error.message === "El día es obligatorio" ||
+      error.message === "El ID de la rutina es obligatorio" ||
+      error.message === "El ID del usuario es obligatorio"
+    ) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    res.status(500).json({
+      error: error.message || "Error al activar la rutina",
+    });
+  }
+};

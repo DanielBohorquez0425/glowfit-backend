@@ -7,6 +7,7 @@ import {
   updateUser,
   getUserById,
   getUserActivity,
+  setActiveRoutine,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -23,5 +24,6 @@ router.get("/profile", authenticateToken, getProfile);
 router.get("/:id/activity", authenticateToken, getUserActivity);
 router.get("/:id", authenticateToken, getUserById);
 router.put("/:id", authenticateToken, updateUser);
+router.patch("/:userId/active-routine", authenticateToken, setActiveRoutine);
 
 export default router;
