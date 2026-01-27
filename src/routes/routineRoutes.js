@@ -6,6 +6,7 @@ import { aiLimiter } from "../middlewares/rateLimitMiddleware.js";
 const router = express.Router();
 
 router.post("/", authenticateToken, routineController.createRoutine);
+router.get("/predefined", authenticateToken, routineController.getPredefinedRoutines);
 router.get("/user/:userId", routineController.getRoutinesByUser);
 router.get("/:id", routineController.getRoutineById);
 router.put("/:id", routineController.updateRoutine);

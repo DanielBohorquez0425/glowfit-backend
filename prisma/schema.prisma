@@ -25,7 +25,7 @@ model User {
   disability_description String?               @map("disability_description")
   bmi                    Float?
   xp                     Int                   @default(0)
-  level                  Int                   @default(1)
+  level                  String                @default("beginner")
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]
   refresh_tokens         RefreshToken[]
