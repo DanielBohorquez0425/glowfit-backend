@@ -49,6 +49,20 @@ export const login = async (req, res) => {
   }
 };
 
+// Logout de usuario
+export const logout = async (req, res) => {
+  try {
+    // En un sistema basado en JWT sin refresh tokens,
+    // el logout se maneja en el cliente eliminando el accessToken
+    return res.json({
+      message: "Sesión cerrada exitosamente. El token debe ser eliminado del cliente."
+    });
+  } catch (error) {
+    console.error("Error en logout:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
 
 // Obtener usuarios (protegido)
 export const getUsers = async (req, res) => {
