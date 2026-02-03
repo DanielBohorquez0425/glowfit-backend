@@ -96,15 +96,24 @@ export const update = async (id, data) => {
 };
 
 export const getUserActivity = async (userId, options = {}) => {
-  const { limit = 10, offset = 0, startDate, endDate } = options;
+  const { limit = 10, offset = 0, startDate, endDate, month } = options;
 
   const where = {
     user_id: userId,
   };
 
-  // Filtros de fecha opcionales
-  if (startDate || endDate) {
+  if (startDate || endDate || month) {
     where.completed_at = {};
+
+    if (month) {
+      const year = new Date().getFullYear();
+      const monthStart = new Date(year, month - 1, 1);
+      const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+
+      where.completed_at.gte = monthStart;
+      where.completed_at.lte = monthEnd;
+    }
+
     if (startDate) {
       where.completed_at.gte = new Date(startDate);
     }
@@ -222,6 +231,6 @@ export const setActiveRoutineForDay = async (userId, day, routineId) => {
     },
     {
       isolationLevel: "Serializable",
-    }
+    },
   );
 };

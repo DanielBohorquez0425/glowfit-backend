@@ -169,7 +169,7 @@ export const createUser = register;
 export const getUserActivity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { limit, page, startDate, endDate } = req.query;
+    const { limit, page, startDate, endDate, month } = req.query;
 
     // Autorización: el usuario solo puede ver su propia actividad
     if (req.user.userId !== id) {
@@ -187,6 +187,7 @@ export const getUserActivity = async (req, res) => {
       offset: offset,
       startDate,
       endDate,
+      month: month ? parseInt(month) : undefined,
     };
 
     const result = await userService.getUserActivity(id, options);
