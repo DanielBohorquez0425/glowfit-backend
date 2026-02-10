@@ -206,6 +206,7 @@ export const getUserActivity = async (req, res) => {
         id: completion.id,
         completed_at: completion.completed_at,
         day_of_week: completion.day_of_week,
+        day_of_month: new Date(completion.completed_at).getDate(),
         routine: completion.routine,
       })),
     });
