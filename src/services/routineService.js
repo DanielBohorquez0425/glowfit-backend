@@ -7,6 +7,19 @@ export const createRoutine = async (data) => {
     throw new Error("El nombre y el ID de usuario son obligatorios");
   }
 
+  // Validar si existen rutinas en los días especificados
+  if (data.days && data.days.length > 0) {
+    const hasExistingRoutines = await routineRepository.checkExistingRoutinesForDays(
+      data.user_id,
+      data.days
+    );
+
+    // Si no se especificó is_active explícitamente, establecerlo según si existen rutinas
+    if (data.is_active === undefined) {
+      data.is_active = !hasExistingRoutines;
+    }
+  }
+
   return await routineRepository.createRoutine(data);
 };
 

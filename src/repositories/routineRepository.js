@@ -2,6 +2,23 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export const checkExistingRoutinesForDays = async (userId, dayIds) => {
+  const existingRoutines = await prisma.routines.findFirst({
+    where: {
+      user_id: userId,
+      routine_days: {
+        some: {
+          day_id: {
+            in: dayIds,
+          },
+        },
+      },
+    },
+  });
+
+  return !!existingRoutines;
+};
+
 export const createRoutine = async (data) => {
   const {
     name,
