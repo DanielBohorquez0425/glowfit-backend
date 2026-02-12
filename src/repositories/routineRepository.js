@@ -19,6 +19,14 @@ export const checkExistingRoutinesForDays = async (userId, dayIds) => {
   return !!existingRoutines;
 };
 
+export const countUserRoutines = async (userId) => {
+  return await prisma.routines.count({
+    where: {
+      user_id: userId,
+    },
+  });
+};
+
 export const createRoutine = async (data) => {
   const {
     name,

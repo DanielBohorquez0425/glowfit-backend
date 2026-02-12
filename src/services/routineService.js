@@ -7,6 +7,12 @@ export const createRoutine = async (data) => {
     throw new Error("El nombre y el ID de usuario son obligatorios");
   }
 
+  // Validar límite de 15 rutinas por usuario
+  const routineCount = await routineRepository.countUserRoutines(data.user_id);
+  if (routineCount >= 15) {
+    throw new Error("Has alcanzado el límite máximo de 15 rutinas");
+  }
+
   // Validar si existen rutinas en los días especificados
   if (data.days && data.days.length > 0) {
     const hasExistingRoutines = await routineRepository.checkExistingRoutinesForDays(
