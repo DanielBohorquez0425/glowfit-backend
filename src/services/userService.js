@@ -139,3 +139,33 @@ export const setActiveRoutineForDay = async (userId, day, routineId) => {
 
   return await userRepository.setActiveRoutineForDay(userId, dayNum, routineId);
 };
+
+export const getWeeklyActivity = async (userId, week, year) => {
+  if (!userId) {
+    throw new Error("El ID del usuario es obligatorio");
+  }
+
+  // Validar que el usuario existe
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  // Si no se proporciona semana o año, usar la semana actual
+  const currentDate = new Date();
+  const currentYear = year || currentDate.getFullYear();
+  const currentWeek = week || getISOWeekNumber(currentDate);
+
+  return await userRepository.getWeeklyActivity(userId, currentWeek, currentYear);
+};
+
+const getISOWeekNumber = (date) => {
+  const tempDate = new Date(date.getTime());
+  tempDate.setHours(0, 0, 0, 0);
+  // Jueves de la semana actual
+  tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7));
+  // Primer jueves del año
+  const week1 = new Date(tempDate.getFullYear(), 0, 4);
+  // Calcular el número de semana
+  return 1 + Math.round(((tempDate - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+};

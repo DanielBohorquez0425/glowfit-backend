@@ -234,3 +234,72 @@ export const setActiveRoutineForDay = async (userId, day, routineId) => {
     },
   );
 };
+
+export const getWeeklyActivity = async (userId, week, year) => {
+  // Calcular el inicio de la semana (lunes a las 00:00:00)
+  const weekStart = getWeekStart(week, year);
+  // Calcular el fin de la semana (domingo a las 23:59:59.999)
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
+
+  // Contar rutinas completadas en la semana
+  const completedRoutines = await prisma.routine_completions.count({
+    where: {
+      user_id: userId,
+      completed_at: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
+  });
+
+  // Contar rutinas activas del usuario
+  const activeRoutines = await prisma.routines.count({
+    where: {
+      user_id: userId,
+      is_active: true,
+    },
+  });
+
+  return {
+    completedRoutines,
+    activeRoutines,
+    weekRange: {
+      start: weekStart,
+      end: weekEnd,
+    },
+  };
+};
+
+/**
+ * Calcula el primer día (lunes) de una semana específica del año
+ * Basado en ISO 8601: la semana 1 es la primera semana con un jueves
+ */
+const getWeekStart = (week, year) => {
+  // Obtener el primer día del año
+  const firstDayOfYear = new Date(year, 0, 1);
+
+  // Calcular el día de la semana (0=domingo, 1=lunes, ..., 6=sábado)
+  let dayOfWeek = firstDayOfYear.getDay();
+
+  // Convertir a formato ISO (1=lunes, 7=domingo)
+  dayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
+
+  // Calcular el lunes de la semana 1 (ISO 8601)
+  const firstMonday = new Date(year, 0, 1);
+  if (dayOfWeek <= 4) {
+    // Si el primer día del año es lunes a jueves, la semana 1 empieza el lunes de esa semana
+    firstMonday.setDate(1 - dayOfWeek + 1);
+  } else {
+    // Si es viernes a domingo, la semana 1 empieza el próximo lunes
+    firstMonday.setDate(1 + (8 - dayOfWeek));
+  }
+
+  // Calcular el lunes de la semana solicitada
+  const weekStart = new Date(firstMonday);
+  weekStart.setDate(firstMonday.getDate() + (week - 1) * 7);
+  weekStart.setHours(0, 0, 0, 0);
+
+  return weekStart;
+};

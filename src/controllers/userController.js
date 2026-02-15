@@ -282,3 +282,46 @@ export const setActiveRoutine = async (req, res) => {
     });
   }
 };
+
+// Obtener actividad semanal del usuario
+export const getWeeklyActivity = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { week, year } = req.query;
+
+    // Autorización: el usuario solo puede ver su propia actividad
+    if (req.user.userId !== id) {
+      return res.status(403).json({
+        error: "No tienes permiso para ver la actividad de este usuario",
+      });
+    }
+
+    const parsedWeek = week ? parseInt(week) : undefined;
+    const parsedYear = year ? parseInt(year) : undefined;
+
+    // Validar que week esté en el rango correcto si se proporciona
+    if (parsedWeek && (parsedWeek < 1 || parsedWeek > 53)) {
+      return res.status(400).json({
+        error: "El número de semana debe estar entre 1 y 53",
+      });
+    }
+
+    const result = await userService.getWeeklyActivity(
+      id,
+      parsedWeek,
+      parsedYear
+    );
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error al obtener actividad semanal del usuario:", error);
+
+    if (error.message === "Usuario no encontrado") {
+      return res.status(404).json({ error: error.message });
+    }
+
+    res.status(500).json({
+      error: error.message || "Error al obtener actividad semanal del usuario",
+    });
+  }
+};

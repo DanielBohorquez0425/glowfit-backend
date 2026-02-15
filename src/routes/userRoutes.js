@@ -9,6 +9,7 @@ import {
   getUserById,
   getUserActivity,
   setActiveRoutine,
+  getWeeklyActivity,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -24,6 +25,7 @@ router.post("/logout", authenticateToken, logout);
 router.get("/all-users", authenticateToken, getUsers);
 router.get("/profile", authenticateToken, getProfile);
 router.get("/:id/activity", authenticateToken, getUserActivity);
+router.get("/:id/activity/weekly", authenticateToken, getWeeklyActivity);
 router.get("/:id", authenticateToken, getUserById);
 router.put("/:id", authenticateToken, updateUser);
 router.patch("/:userId/active-routine", authenticateToken, setActiveRoutine);
