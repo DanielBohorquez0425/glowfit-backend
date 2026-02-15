@@ -335,3 +335,21 @@ export const getPredefinedRoutines = async (req, res) => {
       .json({ error: error.message || "Error al obtener rutinas predefinidas" });
   }
 };
+
+export const deleteRoutine = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    await routineService.deleteRoutine(id, userId);
+    res.json({
+      message: "Rutina eliminada exitosamente",
+    });
+  } catch (error) {
+    const status = error.message === "Rutina no encontrada" ? 404 :
+                   error.message === "No tienes permisos para eliminar esta rutina" ? 403 : 500;
+    res
+      .status(status)
+      .json({ error: error.message || "Error al eliminar la rutina" });
+  }
+};

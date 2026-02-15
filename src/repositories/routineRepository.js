@@ -187,3 +187,27 @@ export const updateRoutine = async (id, data) => {
     },
   });
 };
+
+export const deleteRoutine = async (routineId, userId) => {
+  // Verificar que la rutina existe y pertenece al usuario
+  const routine = await prisma.routines.findUnique({
+    where: {
+      id: routineId,
+    },
+  });
+
+  if (!routine) {
+    throw new Error("Rutina no encontrada");
+  }
+
+  if (routine.user_id !== userId) {
+    throw new Error("No tienes permisos para eliminar esta rutina");
+  }
+
+  // Eliminar la rutina (CASCADE eliminará automáticamente routine_days, routine_exercises, y routine_completions)
+  return await prisma.routines.delete({
+    where: {
+      id: routineId,
+    },
+  });
+};

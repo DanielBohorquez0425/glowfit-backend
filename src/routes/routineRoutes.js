@@ -10,6 +10,7 @@ router.get("/predefined", authenticateToken, routineController.getPredefinedRout
 router.get("/user/:userId", routineController.getRoutinesByUser);
 router.get("/:id", routineController.getRoutineById);
 router.put("/:id", routineController.updateRoutine);
+router.delete("/:id", authenticateToken, routineController.deleteRoutine);
 router.post(
   "/generate-ai",
   aiLimiter,

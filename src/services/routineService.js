@@ -89,3 +89,13 @@ export const updateRoutine = async (id, data) => {
   }
   return await routineRepository.updateRoutine(id, data);
 };
+
+export const deleteRoutine = async (routineId, userId) => {
+  if (!routineId) {
+    throw new Error("El ID de la rutina es obligatorio");
+  }
+  if (!userId) {
+    throw new Error("El ID del usuario es obligatorio");
+  }
+  return await routineRepository.deleteRoutine(routineId, userId);
+};
