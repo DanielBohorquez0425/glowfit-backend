@@ -7,9 +7,9 @@ const router = express.Router();
 
 router.post("/", authenticateToken, routineController.createRoutine);
 router.get("/predefined", authenticateToken, routineController.getPredefinedRoutines);
-router.get("/user/:userId", routineController.getRoutinesByUser);
-router.get("/:id", routineController.getRoutineById);
-router.put("/:id", routineController.updateRoutine);
+router.get("/user/:userId", authenticateToken, routineController.getRoutinesByUser);
+router.get("/:id", authenticateToken, routineController.getRoutineById);
+router.put("/:id", authenticateToken, routineController.updateRoutine);
 router.delete("/:id", authenticateToken, routineController.deleteRoutine);
 router.post(
   "/generate-ai",

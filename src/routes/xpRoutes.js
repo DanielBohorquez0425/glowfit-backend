@@ -10,6 +10,6 @@ router.get("/history", authenticateToken, xpController.getXpHistory);
 
 router.get("/stats", authenticateToken, xpController.getUserStats);
 
-router.get("/config", xpController.getXpConfig);
+router.get("/config", authenticateToken, xpController.getXpConfig);
 
 export default router;
