@@ -6,6 +6,7 @@ export const checkExistingRoutinesForDays = async (userId, dayIds) => {
   const existingRoutines = await prisma.routines.findFirst({
     where: {
       user_id: userId,
+      deleted_at: null,
       routine_days: {
         some: {
           day_id: {
@@ -23,6 +24,7 @@ export const countUserRoutines = async (userId) => {
   return await prisma.routines.count({
     where: {
       user_id: userId,
+      deleted_at: null,
     },
   });
 };
@@ -74,9 +76,10 @@ export const createRoutine = async (data) => {
 };
 
 export const getRoutineById = async (routineId) => {
-  return await prisma.routines.findUnique({
+  return await prisma.routines.findFirst({
     where: {
       id: routineId,
+      deleted_at: null,
     },
     include: {
       routine_days: true,
@@ -89,6 +92,7 @@ export const getRoutinesByUserId = async (userId) => {
   return await prisma.routines.findMany({
     where: {
       user_id: userId,
+      deleted_at: null,
     },
     include: {
       routine_days: true,
@@ -189,10 +193,10 @@ export const updateRoutine = async (id, data) => {
 };
 
 export const deleteRoutine = async (routineId, userId) => {
-  // Verificar que la rutina existe y pertenece al usuario
-  const routine = await prisma.routines.findUnique({
+  const routine = await prisma.routines.findFirst({
     where: {
       id: routineId,
+      deleted_at: null,
     },
   });
 
@@ -204,10 +208,12 @@ export const deleteRoutine = async (routineId, userId) => {
     throw new Error("No tienes permisos para eliminar esta rutina");
   }
 
-  // Eliminar la rutina (CASCADE eliminará automáticamente routine_days, routine_exercises, y routine_completions)
-  return await prisma.routines.delete({
+  return await prisma.routines.update({
     where: {
       id: routineId,
+    },
+    data: {
+      deleted_at: new Date(),
     },
   });
 };

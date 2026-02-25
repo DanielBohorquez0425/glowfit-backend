@@ -8,6 +8,7 @@ import routineRoutes from "./routes/routineRoutes.js";
 import xpRoutes from "./routes/xpRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
+import { startResetCompletedRoutinesJob } from "./jobs/resetCompletedRoutines.js";
 
 dotenv.config();
 
@@ -48,5 +49,8 @@ app.use("/routines", routineRoutes);
 
 // Rutas de XP
 app.use("/xp", xpRoutes);
+
+// Jobs
+startResetCompletedRoutinesJob();
 
 export default app;
