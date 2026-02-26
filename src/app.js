@@ -14,6 +14,9 @@ dotenv.config();
 
 const app = express();
 
+// Necesario para que express-rate-limit funcione correctamente detrás de proxies (Render, Heroku, etc.)
+app.set("trust proxy", 1);
+
 app.use(
   cors({
     origin: process.env.ALLOWED_ORIGINS?.split(",") || "http://localhost:3000",
