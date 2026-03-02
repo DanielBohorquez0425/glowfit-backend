@@ -83,10 +83,19 @@ export const markRoutineAsCompleted = async (routineId, userId) => {
   }
 };
 
-export const updateRoutine = async (id, data) => {
+export const updateRoutine = async (id, userId, data) => {
   if (!id) {
     throw new Error("El ID de la rutina es obligatorio");
   }
+
+  const existing = await routineRepository.getRoutineById(id);
+  if (!existing) {
+    throw new Error("Rutina no encontrada");
+  }
+  if (existing.user_id !== userId) {
+    throw new Error("No tienes permisos para editar esta rutina");
+  }
+
   return await routineRepository.updateRoutine(id, data);
 };
 

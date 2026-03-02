@@ -119,11 +119,18 @@ export const markRoutineAsCompleted = async (req, res) => {
 export const updateRoutine = async (req, res) => {
   try {
     const { id } = req.params;
-    const routine = await routineService.updateRoutine(id, req.body);
+    const userId = req.user.userId;
+    const routine = await routineService.updateRoutine(id, userId, req.body);
     res.json(routine);
   } catch (error) {
+    const status =
+      error.message === "Rutina no encontrada"
+        ? 404
+        : error.message === "No tienes permisos para editar esta rutina"
+        ? 403
+        : 500;
     res
-      .status(500)
+      .status(status)
       .json({ error: error.message || "Error al actualizar la rutina" });
   }
 };
