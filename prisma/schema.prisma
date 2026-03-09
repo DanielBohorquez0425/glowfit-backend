@@ -64,20 +64,21 @@ model MuscleGroup {
 }
 
 model Exercise {
-  id                String           @id @default(uuid()) @db.Uuid
-  name              String
-  description       String?
-  muscle_group_id   String           @db.Uuid
-  created_at        DateTime         @default(now())
-  updated_at        DateTime         @updatedAt
-  link_img          String?
-  starting_position String?
-  execution         String?
-  tips              String[]
-  equipment         String[]
-  difficulty        String?          @db.VarChar(20)
-  exercise_muscles  ExerciseMuscle[]
-  muscle_group      MuscleGroup      @relation(fields: [muscle_group_id], references: [id], onDelete: Cascade)
+  id                        String                      @id @default(uuid()) @db.Uuid
+  name                      String
+  description               String?
+  muscle_group_id           String                      @db.Uuid
+  created_at                DateTime                    @default(now())
+  updated_at                DateTime                    @updatedAt
+  link_img                  String?
+  starting_position         String?
+  execution                 String?
+  tips                      String[]
+  equipment                 String[]
+  difficulty                String?                     @db.VarChar(20)
+  exercise_muscles          ExerciseMuscle[]
+  muscle_group              MuscleGroup                 @relation(fields: [muscle_group_id], references: [id], onDelete: Cascade)
+  popular_routine_exercises popular_routine_exercises[]
 
   @@map("exercises")
 }
@@ -197,6 +198,35 @@ model xp_transactions {
   @@index([created_at], map: "idx_xp_transactions_created_at")
   @@index([action_type], map: "idx_xp_transactions_action_type")
   @@map("xp_transactions")
+}
+
+model popular_routine_exercises {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  popular_routine_id String           @db.Uuid
+  exercise_id        String           @db.Uuid
+  order_position     Int
+  sets               Int?
+  reps               Int?
+  weight             Decimal?         @db.Decimal(10, 2)
+  rest_time          Int?
+  notes              String?
+  created_at         DateTime?        @default(now()) @db.Timestamp(6)
+  exercises          Exercise         @relation(fields: [exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  popular_routines   popular_routines @relation(fields: [popular_routine_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([exercise_id], map: "idx_popular_routine_exercises_exercise_id")
+  @@index([popular_routine_id], map: "idx_popular_routine_exercises_routine_id")
+}
+
+model popular_routines {
+  id                        String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String                      @db.VarChar(255)
+  description               String?
+  level                     userLevel
+  estimated_duration        Int?
+  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  updated_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  popular_routine_exercises popular_routine_exercises[]
 }
 
 enum userLevel {
