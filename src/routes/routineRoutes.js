@@ -6,8 +6,11 @@ import { aiLimiter } from "../middlewares/rateLimitMiddleware.js";
 const router = express.Router();
 
 router.post("/", authenticateToken, routineController.createRoutine);
-router.get("/predefined", authenticateToken, routineController.getPredefinedRoutines);
-router.get("/user/:userId", authenticateToken, routineController.getRoutinesByUser);
+router.get(
+  "/user/:userId",
+  authenticateToken,
+  routineController.getRoutinesByUser,
+);
 router.get("/:id", authenticateToken, routineController.getRoutineById);
 router.put("/:id", authenticateToken, routineController.updateRoutine);
 router.delete("/:id", authenticateToken, routineController.deleteRoutine);
@@ -15,12 +18,12 @@ router.post(
   "/generate-ai",
   aiLimiter,
   authenticateToken,
-  routineController.generateAIRoutine
+  routineController.generateAIRoutine,
 );
 router.patch(
   "/:id/complete",
   authenticateToken,
-  routineController.markRoutineAsCompleted
+  routineController.markRoutineAsCompleted,
 );
 
 export default router;
