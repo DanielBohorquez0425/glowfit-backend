@@ -1,5 +1,22 @@
 import prisma from "../config/prismaClient.js";
 
+export const incrementTokenVersion = async (userId) => {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { token_version: { increment: 1 } },
+    select: { token_version: true },
+  });
+  return user.token_version;
+};
+
+export const findTokenVersionById = async (id) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { token_version: true },
+  });
+  return user?.token_version;
+};
+
 export const findByEmail = async (email) => {
   return await prisma.user.findUnique({
     where: { email },

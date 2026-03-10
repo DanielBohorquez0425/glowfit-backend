@@ -46,7 +46,7 @@ export const register = async (userData) => {
     bmi: bmi || null,
   });
 
-  const accessToken = generateAccessToken(newUser.id, newUser.email);
+  const accessToken = generateAccessToken(newUser.id, newUser.email, newUser.token_version);
 
   const { password: _, ...userWithoutPassword } = newUser;
 
@@ -64,7 +64,8 @@ export const login = async (email, password) => {
     throw new Error("Credenciales inválidas");
   }
 
-  const accessToken = generateAccessToken(user.id, user.email);
+  const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
+  const accessToken = generateAccessToken(user.id, user.email, newTokenVersion);
 
   const { password: _, ...userWithoutPassword } = user;
 

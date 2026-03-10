@@ -26,6 +26,7 @@ model User {
   bmi                    Float?
   xp                     Int                   @default(0)
   level                  userLevel             @default(beginner)
+  token_version          Int                   @default(0)
   refresh_tokens         RefreshToken[]
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]

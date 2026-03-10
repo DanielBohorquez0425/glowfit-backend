@@ -1,9 +1,9 @@
 import jwt from 'jsonwebtoken';
 import { JWT_CONFIG } from '../config/jwtConfig.js';
 
-export const generateAccessToken = (userId, email) => {
+export const generateAccessToken = (userId, email, tokenVersion) => {
   return jwt.sign(
-    { userId, email },
+    { userId, email, tokenVersion },
     JWT_CONFIG.secret,
     { expiresIn: JWT_CONFIG.accessTokenExpiresIn }
   );
