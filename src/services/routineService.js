@@ -15,10 +15,11 @@ export const createRoutine = async (data) => {
 
   // Validar si existen rutinas en los días especificados
   if (data.days && data.days.length > 0) {
-    const hasExistingRoutines = await routineRepository.checkExistingRoutinesForDays(
-      data.user_id,
-      data.days
-    );
+    const hasExistingRoutines =
+      await routineRepository.checkExistingRoutinesForDays(
+        data.user_id,
+        data.days,
+      );
 
     // Si no se especificó is_active explícitamente, establecerlo según si existen rutinas
     if (data.is_active === undefined) {
@@ -57,30 +58,8 @@ export const markRoutineAsCompleted = async (routineId, userId) => {
 
   const routine = await routineRepository.markRoutineAsCompleted(
     routineId,
-    userId
+    userId,
   );
-
-  const completionId = routine.routine_completions?.[0]?.id;
-
-  try {
-    const xpResult = await xpService.awardXp(userId, "COMPLETE_ROUTINE", {
-      routine_id: routineId,
-      routine_name: routine.name,
-      routine_completion_id: completionId,
-    });
-
-    return {
-      routine,
-      xpResult,
-    };
-  } catch (xpError) {
-    console.error("Error al otorgar XP:", xpError);
-    return {
-      routine,
-      xpResult: null,
-      xpError: xpError.message,
-    };
-  }
 };
 
 export const updateRoutine = async (id, userId, data) => {
