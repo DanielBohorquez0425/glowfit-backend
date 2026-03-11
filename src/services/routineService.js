@@ -1,5 +1,4 @@
 import * as routineRepository from "../repositories/routineRepository.js";
-import * as xpService from "./xpService.js";
 
 export const createRoutine = async (data) => {
   // Aquí se pueden agregar validaciones adicionales si es necesario
