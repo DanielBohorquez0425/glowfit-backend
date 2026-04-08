@@ -8,28 +8,30 @@ datasource db {
 }
 
 model User {
-  id                     String                @id @default(uuid()) @db.Uuid
-  email                  String                @unique
-  password               String
-  name                   String?
-  last_name              String?
-  created_at             DateTime              @default(now())
-  updated_at             DateTime              @updatedAt
-  role                   String?               @default("user")
-  date_of_birth          DateTime?             @map("date_of_birth")
-  gender                 String?
-  goal_id                Int?
-  height                 Float?
-  weight                 Float?
-  has_disability         Boolean?              @default(false) @map("has_disability")
-  disability_description String?               @map("disability_description")
-  bmi                    Float?
-  level                  userLevel             @default(beginner)
-  token_version          Int                   @default(0)
-  refresh_tokens         RefreshToken[]
-  routine_completions    routine_completions[]
-  user_training_days     user_training_days[]
-  goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
+  id                                                 String                @id @default(uuid()) @db.Uuid
+  email                                              String                @unique
+  password                                           String
+  name                                               String?
+  last_name                                          String?
+  created_at                                         DateTime              @default(now())
+  updated_at                                         DateTime              @updatedAt
+  role                                               String?               @default("user")
+  date_of_birth                                      DateTime?             @map("date_of_birth")
+  gender                                             String?
+  goal_id                                            Int?
+  height                                             Float?
+  weight                                             Float?
+  has_disability                                     Boolean?              @default(false) @map("has_disability")
+  disability_description                             String?               @map("disability_description")
+  bmi                                                Float?
+  level                                              userLevel             @default(beginner)
+  token_version                                      Int                   @default(0)
+  gym_memberships_gym_memberships_assigned_byTousers gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
+  gym_memberships_gym_memberships_user_idTousers     gym_memberships?      @relation("gym_memberships_user_idTousers")
+  refresh_tokens                                     RefreshToken[]
+  routine_completions                                routine_completions[]
+  user_training_days                                 user_training_days[]
+  goals                                              goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
   @@map("users")
@@ -166,14 +168,14 @@ model goals {
 }
 
 model routine_completions {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String            @db.Uuid
-  routine_id      String            @db.Uuid
-  completed_at    DateTime          @default(now()) @db.Timestamp(6)
-  day_of_week     Int
-  created_at      DateTime          @default(now()) @db.Timestamp(6)
-  routine         routines          @relation(fields: [routine_id], references: [id], onDelete: Cascade)
-  user            User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String   @db.Uuid
+  routine_id   String   @db.Uuid
+  completed_at DateTime @default(now()) @db.Timestamp(6)
+  day_of_week  Int
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  routine      routines @relation(fields: [routine_id], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id], map: "idx_routine_completions_user_id")
   @@index([routine_id], map: "idx_routine_completions_routine_id")
@@ -210,8 +212,50 @@ model popular_routines {
   popular_routine_exercises popular_routine_exercises[]
 }
 
+model gym_memberships {
+  id                                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gym_id                                   String            @db.Uuid
+  user_id                                  String            @unique(map: "unique_user_membership") @db.Uuid
+  status                                   membership_status @default(ACTIVE)
+  plan                                     String?           @db.VarChar(100)
+  start_date                               DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
+  end_date                                 DateTime?         @db.Date
+  assigned_by                              String?           @db.Uuid
+  notes                                    String?
+  created_at                               DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at                               DateTime?         @default(now()) @db.Timestamp(6)
+  users_gym_memberships_assigned_byTousers User?             @relation("gym_memberships_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
+  gyms                                     gyms              @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_gym_memberships_user_idTousers     User              @relation("gym_memberships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model gyms {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String            @db.VarChar(255)
+  slug            String            @unique @db.VarChar(255)
+  description     String?
+  address         String?
+  city            String?           @db.VarChar(100)
+  country         String?           @default("CO") @db.VarChar(10)
+  logo_url        String?
+  cover_image_url String?
+  phone           String?           @db.VarChar(20)
+  email           String?           @db.VarChar(255)
+  is_active       Boolean?          @default(true)
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  gym_memberships gym_memberships[]
+}
+
 enum userLevel {
   beginner
   intermediate
   advanced
+}
+
+enum membership_status {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
 }
