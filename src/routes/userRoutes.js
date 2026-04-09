@@ -10,6 +10,9 @@ import {
   getUserActivity,
   setActiveRoutine,
   getWeeklyActivity,
+  forgotPassword,
+  verifyResetCode,
+  resetPassword,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -19,6 +22,9 @@ const router = express.Router();
 // rutas publicas con rate limiting estricto
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
+router.post("/forgot-password", authLimiter, forgotPassword);
+router.post("/verify-reset-code", authLimiter, verifyResetCode);
+router.post("/reset-password", authLimiter, resetPassword);
 
 // rutas privadas
 router.post("/logout", authenticateToken, logout);

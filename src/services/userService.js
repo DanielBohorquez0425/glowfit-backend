@@ -1,6 +1,8 @@
 import * as userRepository from "../repositories/userRepository.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../utils/jwtUtils.js";
+import { sendPasswordResetCode } from "./emailService.js";
 
 const calculateBMI = (weight, height) => {
   if (!weight || !height || weight <= 0 || height <= 0) {
@@ -159,6 +161,57 @@ export const getWeeklyActivity = async (userId, week, year) => {
 
   return await userRepository.getWeeklyActivity(userId, currentWeek, currentYear);
 };
+
+// ── Password Reset ────────────────────────────────────────────────────────────
+
+export const forgotPassword = async (email) => {
+  const user = await userRepository.findByEmail(email);
+  // Responder siempre 200 para no revelar si el email existe
+  if (!user) return;
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const hashedCode = await bcrypt.hash(code, 10);
+
+  await userRepository.createPasswordResetCode(user.id, hashedCode);
+  await sendPasswordResetCode(email, code);
+};
+
+export const verifyResetCode = async (email, code) => {
+  const user = await userRepository.findByEmail(email);
+  if (!user) throw new Error("INVALID_CODE");
+
+  const record = await userRepository.findActiveResetCode(user.id);
+  if (!record) throw new Error("INVALID_CODE");
+
+  const isValid = await bcrypt.compare(code, record.code);
+  if (!isValid) throw new Error("INVALID_CODE");
+
+  await userRepository.markResetCodeAsUsed(record.id);
+
+  const resetToken = jwt.sign(
+    { userId: user.id, purpose: "password_reset" },
+    process.env.JWT_SECRET,
+    { expiresIn: "15m" }
+  );
+
+  return { reset_token: resetToken };
+};
+
+export const resetPassword = async (resetToken, newPassword) => {
+  let payload;
+  try {
+    payload = jwt.verify(resetToken, process.env.JWT_SECRET);
+  } catch {
+    throw new Error("INVALID_TOKEN");
+  }
+
+  if (payload.purpose !== "password_reset") throw new Error("INVALID_TOKEN");
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updatePassword(payload.userId, hashedPassword);
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const getISOWeekNumber = (date) => {
   const tempDate = new Date(date.getTime());

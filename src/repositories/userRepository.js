@@ -249,6 +249,48 @@ export const setActiveRoutineForDay = async (userId, day, routineId) => {
   );
 };
 
+// ── Password Reset ────────────────────────────────────────────────────────────
+
+export const createPasswordResetCode = async (userId, hashedCode) => {
+  // Invalidar códigos anteriores del usuario
+  await prisma.passwordResetCode.updateMany({
+    where: { user_id: userId, used: false },
+    data: { used: true },
+  });
+
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
+  return await prisma.passwordResetCode.create({
+    data: { user_id: userId, code: hashedCode, expires_at: expiresAt },
+  });
+};
+
+export const findActiveResetCode = async (userId) => {
+  return await prisma.passwordResetCode.findFirst({
+    where: {
+      user_id: userId,
+      used: false,
+      expires_at: { gt: new Date() },
+    },
+    orderBy: { created_at: "desc" },
+  });
+};
+
+export const markResetCodeAsUsed = async (id) => {
+  return await prisma.passwordResetCode.update({
+    where: { id },
+    data: { used: true },
+  });
+};
+
+export const updatePassword = async (userId, hashedPassword) => {
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const getWeeklyActivity = async (userId, week, year) => {
   // Calcular el inicio de la semana (lunes a las 00:00:00)
   const weekStart = getWeekStart(week, year);

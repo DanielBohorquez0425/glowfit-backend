@@ -166,6 +166,63 @@ export const updateUser = async (req, res) => {
 
 export const createUser = register;
 
+// Solicitar código de reset de contraseña
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "El email es obligatorio." });
+  }
+  try {
+    await userService.forgotPassword(email);
+    return res.json({ message: "Si el email existe, recibirás un código de verificación." });
+  } catch (error) {
+    console.error("Error en forgotPassword:", error);
+    return res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
+// Verificar el código de 6 dígitos
+export const verifyResetCode = async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ error: "Email y código son obligatorios." });
+  }
+  try {
+    const result = await userService.verifyResetCode(email, code);
+    return res.json(result);
+  } catch (error) {
+    if (error.message === "INVALID_CODE") {
+      return res.status(400).json({ error: "Código inválido o expirado." });
+    }
+    console.error("Error en verifyResetCode:", error);
+    return res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
+// Cambiar la contraseña usando el reset_token
+export const resetPassword = async (req, res) => {
+  const { reset_token, new_password, confirm_password } = req.body;
+  if (!reset_token || !new_password || !confirm_password) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+  }
+  if (new_password !== confirm_password) {
+    return res.status(400).json({ error: "Las contraseñas no coinciden." });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
+  }
+  try {
+    await userService.resetPassword(reset_token, new_password);
+    return res.json({ message: "Contraseña actualizada exitosamente." });
+  } catch (error) {
+    if (error.message === "INVALID_TOKEN") {
+      return res.status(400).json({ error: "Token inválido o expirado." });
+    }
+    console.error("Error en resetPassword:", error);
+    return res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
 export const getUserActivity = async (req, res) => {
   try {
     const { id } = req.params;
