@@ -8,7 +8,7 @@ const getResend = () => {
 
 export const sendPasswordResetCode = async (email, code) => {
   await getResend().emails.send({
-    from: "GlowFit <glowfit@support.com>",
+    from: "GlowFit <onboarding@resend.dev>",
     to: email,
     subject: "Tu código de verificación - GlowFit",
     html: `
