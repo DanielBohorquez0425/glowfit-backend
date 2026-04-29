@@ -15,7 +15,7 @@ model User {
   last_name                                          String?
   created_at                                         DateTime              @default(now())
   updated_at                                         DateTime              @updatedAt
-  role                                               String?               @default("user")
+  role                                               UserGlobalRole        @default(USER)
   date_of_birth                                      DateTime?             @map("date_of_birth")
   gender                                             String?
   goal_id                                            Int?
@@ -293,6 +293,12 @@ enum invitation_status {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+enum UserGlobalRole {
+  USER
+  ADMIN
+  SUPERADMIN
 }
 
 enum membership_role {
