@@ -7,7 +7,20 @@ export const sendInvitation = async (data) => {
 export const findUniqueInvitation = async (email, gym_id) => {
   return await prisma.gym_invitations.findUnique({
     where: {
-      unique_invitation_per_gym: { email: email, gym_id: gym_id },
+      email_gym_id: { email: email, gym_id: gym_id },
     },
+  });
+};
+
+export const findInvitationById = async (id) => {
+  return await prisma.gym_invitations.findUnique({
+    where: { id },
+  });
+};
+
+export const acceptInvitation = async (id) => {
+  return await prisma.gym_invitations.update({
+    where: { id },
+    data: { status: "ACCEPTED" },
   });
 };

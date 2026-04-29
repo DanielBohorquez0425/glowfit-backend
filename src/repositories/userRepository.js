@@ -45,6 +45,22 @@ export const findById = async (id) => {
       level: true,
       created_at: true,
       updated_at: true,
+      gym_memberships_gym_memberships_user_idTousers: {
+        select: {
+          gym_id: true,
+          role: true,
+          status: true,
+          gyms: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo_url: true,
+              city: true,
+            },
+          },
+        },
+      },
     },
   });
 };

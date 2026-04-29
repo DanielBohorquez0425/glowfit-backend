@@ -227,14 +227,13 @@ model popular_routines {
 }
 
 model gym_invitations {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email      String    @db.VarChar(255)
-  gym_id     String    @db.Uuid
-  status     String    @default("PENDING") @db.VarChar(20)
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  updated_at DateTime? @updatedAt @db.Timestamp(6)
-
-  gyms gyms @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String            @db.VarChar(255)
+  gym_id     String            @db.Uuid
+  created_at DateTime?         @default(now()) @db.Timestamp(6)
+  updated_at DateTime?         @updatedAt @db.Timestamp(6)
+  status     invitation_status @default(PENDING)
+  gyms       gyms              @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([email, gym_id], map: "unique_invitation_per_gym")
   @@index([email, status])
@@ -252,6 +251,7 @@ model gym_memberships {
   notes                                    String?
   created_at                               DateTime?         @default(now()) @db.Timestamp(6)
   updated_at                               DateTime?         @default(now()) @db.Timestamp(6)
+  role                                     membership_role   @default(MEMBER)
   users_gym_memberships_assigned_byTousers User?             @relation("gym_memberships_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
   gyms                                     gyms              @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_gym_memberships_user_idTousers     User              @relation("gym_memberships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -272,8 +272,8 @@ model gyms {
   is_active       Boolean?          @default(true)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @default(now()) @db.Timestamp(6)
-  gym_memberships gym_memberships[]
   gym_invitations gym_invitations[]
+  gym_memberships gym_memberships[]
 }
 
 enum userLevel {
@@ -287,4 +287,15 @@ enum membership_status {
   EXPIRED
   SUSPENDED
   CANCELLED
+}
+
+enum invitation_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum membership_role {
+  MEMBER
+  TRAINER
 }

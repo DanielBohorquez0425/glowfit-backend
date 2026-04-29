@@ -80,7 +80,25 @@ export const getUsers = async () => {
 };
 
 export const getUserById = async (userId) => {
-  return await userRepository.findById(userId);
+  const user = await userRepository.findById(userId);
+  if (!user) return null;
+
+  const { gym_memberships_gym_memberships_user_idTousers: rawMembership, ...rest } = user;
+
+  const gym_membership = rawMembership
+    ? {
+        gym_id: rawMembership.gym_id,
+        status: rawMembership.status,
+        role: rawMembership.role,
+        gym: rawMembership.gyms,
+      }
+    : null;
+
+  return {
+    ...rest,
+    gym_membership,
+    is_trainer: rawMembership?.role === "TRAINER" ?? false,
+  };
 };
 
 export const getProfile = async (userId) => {

@@ -7,6 +7,7 @@ import muscleGroupRoutes from "./routes/muscleGroupRoutes.js";
 import routineRoutes from "./routes/routineRoutes.js";
 import popularRoutineRoutes from "./routes/popularRoutineRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
+import gymRoutes from "./routes/gymRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
 import { startResetCompletedRoutinesJob } from "./jobs/resetCompletedRoutines.js";
@@ -56,6 +57,9 @@ app.use("/popular-routines", popularRoutineRoutes);
 
 // Rutas de invitaciones
 app.use("/invitations", invitationRoutes);
+
+// Rutas de gyms
+app.use("/gyms", gymRoutes);
 
 // Jobs
 startResetCompletedRoutinesJob();
