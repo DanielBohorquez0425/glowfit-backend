@@ -15,7 +15,6 @@ model User {
   last_name                                          String?
   created_at                                         DateTime              @default(now())
   updated_at                                         DateTime              @updatedAt
-  role                                               UserGlobalRole        @default(USER)
   date_of_birth                                      DateTime?             @map("date_of_birth")
   gender                                             String?
   goal_id                                            Int?
@@ -26,6 +25,7 @@ model User {
   bmi                                                Float?
   level                                              userLevel             @default(beginner)
   token_version                                      Int                   @default(0)
+  role                                               UserGlobalRole        @default(USER)
   gym_memberships_gym_memberships_assigned_byTousers gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
   gym_memberships_gym_memberships_user_idTousers     gym_memberships?      @relation("gym_memberships_user_idTousers")
   password_reset_codes                               PasswordResetCode[]
