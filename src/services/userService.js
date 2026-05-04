@@ -89,7 +89,6 @@ export const getUserById = async (userId) => {
     ? {
         gym_id: rawMembership.gym_id,
         status: rawMembership.status,
-        role: rawMembership.role,
         gym: rawMembership.gyms,
       }
     : null;
@@ -97,7 +96,6 @@ export const getUserById = async (userId) => {
   return {
     ...rest,
     gym_membership,
-    is_trainer: rawMembership?.role === "TRAINER" ?? false,
   };
 };
 

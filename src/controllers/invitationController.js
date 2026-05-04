@@ -24,11 +24,18 @@ export const sendInvitation = async (req, res) => {
 export const acceptInvitation = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: "ID requerido", success: false });
+    }
     const result = await invitationService.acceptInvitation(id);
     res.status(200).json({
       message: "Invitación aceptada exitosamente",
       success: true,
-      data: result,
+      data: {
+        invitation: result.invitation,
+        membership: result.membership,
+        user: result.user,
+      },
     });
   } catch (error) {
     if (error.message === "INVITATION_NOT_FOUND") {

@@ -39,15 +39,16 @@ export const acceptInvitation = async (invitationId) => {
     throw new Error("USER_ALREADY_MEMBER");
   }
 
-  const [updatedInvitation, membership] = await Promise.all([
+  const [updatedInvitation, membership, updatedUser] = await Promise.all([
     invitationRepository.acceptInvitation(invitationId),
     gymMembershipRepository.createMembership({
       gym_id: invitation.gym_id,
       user_id: user.id,
     }),
+    userRepository.updateUserRole(user.id, "MEMBER"),
   ]);
 
-  return { invitation: updatedInvitation, membership };
+  return { invitation: updatedInvitation, membership, user: updatedUser };
 };
 
 export const getInvitationsByUserEmail = async (email) => {
@@ -76,7 +77,6 @@ export const getMembersByGymId = async (gymId) => {
     membership_id: m.id,
     gym_id: m.gym_id,
     status: m.status,
-    role: m.role,
     plan: m.plan,
     start_date: m.start_date,
     end_date: m.end_date,
