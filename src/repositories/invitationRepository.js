@@ -24,3 +24,10 @@ export const acceptInvitation = async (id) => {
     data: { status: "ACCEPTED" },
   });
 };
+
+export const getInvitationByUserEmail = async (email) => {
+  return await prisma.gym_invitations.findMany({
+    where: { email },
+    include: { gyms: true },
+  });
+};

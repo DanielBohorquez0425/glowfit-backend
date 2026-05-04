@@ -50,6 +50,22 @@ export const acceptInvitation = async (invitationId) => {
   return { invitation: updatedInvitation, membership };
 };
 
+export const getInvitationsByUserEmail = async (email) => {
+  if (!email) {
+    throw new Error("El email es obligatorio");
+  }
+  const invitations =
+    await invitationRepository.getInvitationByUserEmail(email);
+  return invitations.map((inv) => ({
+    id: inv.id,
+    email: inv.email,
+    status: inv.status,
+    gym_id: inv.gym_id,
+    gym_name: inv.gyms?.name,
+    created_at: inv.created_at,
+  }));
+};
+
 export const getMembersByGymId = async (gymId) => {
   if (!gymId) {
     throw new Error("El ID del gym es obligatorio");

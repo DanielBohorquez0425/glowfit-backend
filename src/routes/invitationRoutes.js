@@ -2,11 +2,13 @@ import { Router } from "express";
 import {
   sendInvitation,
   acceptInvitation,
+  getInvitationsByUserEmail,
 } from "../controllers/invitationController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 
 const router = Router();
 
+router.get("/user", authenticateToken, getInvitationsByUserEmail);
 router.post("/send", authenticateToken, sendInvitation);
 router.patch("/:id/accepted", authenticateToken, acceptInvitation);
 

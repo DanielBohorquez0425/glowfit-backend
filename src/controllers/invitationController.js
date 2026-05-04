@@ -64,6 +64,23 @@ export const acceptInvitation = async (req, res) => {
   }
 };
 
+export const getInvitationsByUserEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const invitations = await invitationService.getInvitationsByUserEmail(email);
+    res.status(200).json({
+      success: true,
+      data: invitations,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error obteniendo invitaciones",
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 export const getMembersByGymId = async (req, res) => {
   try {
     const { gymId } = req.params;
