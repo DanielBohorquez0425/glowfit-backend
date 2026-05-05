@@ -34,7 +34,6 @@ export const acceptInvitation = async (req, res) => {
       data: {
         invitation: result.invitation,
         membership: result.membership,
-        user: result.user,
       },
     });
   } catch (error) {

@@ -1,4 +1,5 @@
 import * as userRepository from "../repositories/userRepository.js";
+import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../utils/jwtUtils.js";
@@ -79,23 +80,31 @@ export const getUsers = async () => {
   return await userRepository.findAll();
 };
 
+const mapGymMembership = (rawMembership) => {
+  if (!rawMembership) return null;
+  return {
+    gym_id: rawMembership.gym_id,
+    status: rawMembership.status,
+    gym_roles: rawMembership.gym_roles,
+    active_role: rawMembership.active_role,
+    plan: rawMembership.plan,
+    start_date: rawMembership.start_date,
+    end_date: rawMembership.end_date,
+    gym: rawMembership.gyms,
+  };
+};
+
 export const getUserById = async (userId) => {
   const user = await userRepository.findById(userId);
   if (!user) return null;
 
-  const { gym_memberships_gym_memberships_user_idTousers: rawMembership, ...rest } = user;
+  const { gym_membership, ...rest } = user;
 
-  const gym_membership = rawMembership
-    ? {
-        gym_id: rawMembership.gym_id,
-        status: rawMembership.status,
-        gym: rawMembership.gyms,
-      }
-    : null;
+  const mappedMembership = mapGymMembership(gym_membership);
 
   return {
     ...rest,
-    gym_membership,
+    gym_membership: mappedMembership,
   };
 };
 
@@ -104,7 +113,31 @@ export const getProfile = async (userId) => {
   if (!user) {
     throw new Error("Usuario no encontrado");
   }
-  return user;
+
+  const { gym_membership, ...rest } = user;
+
+  const mappedMembership = mapGymMembership(gym_membership);
+
+  return {
+    ...rest,
+    gym_membership: mappedMembership,
+  };
+};
+
+export const switchActiveRole = async (userId, role) => {
+  const membership = await gymMembershipRepository.findMembershipByUserId(userId);
+
+  if (!membership) {
+    throw new Error("NO_MEMBERSHIP");
+  }
+
+  if (!membership.gym_roles.includes(role)) {
+    throw new Error("ROLE_NOT_IN_MEMBERSHIP");
+  }
+
+  const updated = await gymMembershipRepository.setActiveRole(membership.id, role);
+
+  return mapGymMembership(updated);
 };
 
 export const updateUser = async (userId, data) => {

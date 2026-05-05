@@ -13,6 +13,7 @@ import {
   forgotPassword,
   verifyResetCode,
   resetPassword,
+  switchActiveRole,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -30,6 +31,7 @@ router.post("/reset-password", authLimiter, resetPassword);
 router.post("/logout", authenticateToken, logout);
 router.get("/all-users", authenticateToken, getUsers);
 router.get("/profile", authenticateToken, getProfile);
+router.patch("/profile/switch-role", authenticateToken, switchActiveRole);
 router.get("/:id/activity", authenticateToken, getUserActivity);
 router.get("/:id/activity/weekly", authenticateToken, getWeeklyActivity);
 router.get("/:id", authenticateToken, getUserById);

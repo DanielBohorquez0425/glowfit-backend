@@ -244,6 +244,8 @@ model gym_memberships {
   gym_id                                   String            @db.Uuid
   user_id                                  String            @unique(map: "unique_user_membership") @db.Uuid
   status                                   membership_status @default(ACTIVE)
+  gym_roles                                GymRole[]
+  active_role                              GymRole           @default(MEMBER)
   plan                                     String?           @db.VarChar(100)
   start_date                               DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
   end_date                                 DateTime?         @db.Date
@@ -299,4 +301,11 @@ enum UserGlobalRole {
   MEMBER
   ADMIN
   SUPERADMIN
+}
+
+enum GymRole {
+  GYM_OWNER
+  GYM_ADMIN
+  TRAINER
+  MEMBER
 }

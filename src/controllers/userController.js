@@ -96,6 +96,7 @@ export const getUserById = async (req, res) => {
     }
     res.json(user);
   } catch (error) {
+    console.error("Error al obtener usuario:", error);
     res.status(500).json({ error: "Error al obtener usuario" });
   }
 };
@@ -220,6 +221,32 @@ export const resetPassword = async (req, res) => {
     }
     console.error("Error en resetPassword:", error);
     return res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
+export const switchActiveRole = async (req, res) => {
+  try {
+    const { role } = req.body;
+
+    if (!role) {
+      return res.status(400).json({ error: "El rol es obligatorio" });
+    }
+
+    const updatedMembership = await userService.switchActiveRole(req.user.userId, role);
+
+    res.json({
+      message: "Rol activo actualizado",
+      data: updatedMembership,
+    });
+  } catch (error) {
+    if (error.message === "NO_MEMBERSHIP") {
+      return res.status(404).json({ error: "No tienes membresía en ningún gym" });
+    }
+    if (error.message === "ROLE_NOT_IN_MEMBERSHIP") {
+      return res.status(400).json({ error: "No tienes ese rol en tu membresía" });
+    }
+    console.error("Error al cambiar rol activo:", error);
+    res.status(500).json({ error: "Error al cambiar rol activo" });
   }
 };
 

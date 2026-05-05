@@ -46,10 +46,12 @@ export const findById = async (id) => {
       created_at: true,
       updated_at: true,
       role: true,
-      gym_memberships: {
+      gym_membership: {
         select: {
           gym_id: true,
           status: true,
+          gym_roles: true,
+          active_role: true,
           gyms: {
             select: {
               id: true,
