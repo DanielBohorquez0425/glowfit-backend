@@ -167,6 +167,98 @@ export const updateUser = async (req, res) => {
 
 export const createUser = register;
 
+// Crear gym owner (admin-only: crea usuario + membresía en gym existente)
+export const createGymOwner = async (req, res) => {
+  // TODO: Restringir este endpoint a personal de GlowFit (role ADMIN o SUPERADMIN)
+  const { email, password, name, last_name, role, gym_id, plan, notes } = req.body;
+
+  // Validar campos obligatorios del usuario
+  if (!email || !password) {
+    return res.status(400).json({
+      error: "El email y la contraseña son obligatorios.",
+    });
+  }
+
+  // Validar contraseña mínima
+  if (password.length < 6) {
+    return res.status(400).json({
+      error: "La contraseña debe tener al menos 6 caracteres.",
+    });
+  }
+
+  // Validar gym_id
+  if (!gym_id) {
+    return res.status(400).json({
+      error: "El ID del gimnasio es obligatorio.",
+    });
+  }
+
+  try {
+    const result = await userService.createGymOwner(
+      { email, password, name, last_name, role, plan, notes },
+      gym_id,
+      req.user.userId // quién crea el gym owner (el admin)
+    );
+
+    return res.status(201).json({
+      message: "Gym owner creado exitosamente",
+      data: result,
+    });
+  } catch (error) {
+    if (error.message === "USER_ALREADY_EXISTS") {
+      return res.status(409).json({ error: "Ya existe un usuario con ese email." });
+    }
+    if (error.message === "GYM_NOT_FOUND") {
+      return res.status(404).json({ error: "El gimnasio especificado no existe." });
+    }
+    console.error("Error al crear gym owner:", error);
+    return res.status(500).json({ error: "Error interno al crear gym owner." });
+  }
+};
+
+// Crear gym admin (solo GYM_OWNER puede crear staff administrativo)
+export const createGymAdmin = async (req, res) => {
+  const { email, password, name, last_name, role, plan, notes } = req.body;
+
+  // Validar campos obligatorios
+  if (!email || !password) {
+    return res.status(400).json({
+      error: "El email y la contraseña son obligatorios.",
+    });
+  }
+
+  // Validar contraseña mínima
+  if (password.length < 6) {
+    return res.status(400).json({
+      error: "La contraseña debe tener al menos 6 caracteres.",
+    });
+  }
+
+  try {
+    const result = await userService.createGymAdmin(
+      req.user.userId, // el owner autenticado
+      { email, password, name, last_name, role, plan, notes }
+    );
+
+    return res.status(201).json({
+      message: "Administrador del gym creado exitosamente",
+      data: result,
+    });
+  } catch (error) {
+    if (error.message === "USER_ALREADY_EXISTS") {
+      return res.status(409).json({ error: "Ya existe un usuario con ese email." });
+    }
+    if (error.message === "OWNER_NO_MEMBERSHIP") {
+      return res.status(403).json({ error: "No tienes membresía en ningún gimnasio." });
+    }
+    if (error.message === "NOT_GYM_OWNER") {
+      return res.status(403).json({ error: "Solo los owners del gym pueden crear administradores." });
+    }
+    console.error("Error al crear gym admin:", error);
+    return res.status(500).json({ error: "Error interno al crear administrador del gym." });
+  }
+};
+
 // Solicitar código de reset de contraseña
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;

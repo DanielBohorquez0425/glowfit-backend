@@ -262,6 +262,91 @@ export const resetPassword = async (resetToken, newPassword) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── Gym Owner Creation ───────────────────────────────────────────────────────
+
+export const createGymOwner = async (userData, gymId, assignedById) => {
+  const { email, password, name, last_name, role, plan, notes } = userData;
+
+  // Validar campos obligatorios del usuario
+  if (!email || !password) {
+    throw new Error("EMAIL_AND_PASSWORD_REQUIRED");
+  }
+
+  // Validar que el email no exista
+  const existingUser = await userRepository.findByEmail(email);
+  if (existingUser) {
+    throw new Error("USER_ALREADY_EXISTS");
+  }
+
+  // Validar que el gym exista
+  if (!gymId) {
+    throw new Error("GYM_ID_REQUIRED");
+  }
+
+  // Hash de la contraseña
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Crear usuario + membresía atómicamente (valida gym dentro de la transacción)
+  const result = await userRepository.createGymOwner(
+    {
+      email,
+      password: hashedPassword,
+      name: name || null,
+      last_name: last_name || null,
+      role: role || "USER",
+      assigned_by: assignedById || null,
+      plan: plan || null,
+      notes: notes || null,
+    },
+    gymId
+  );
+
+  // Retornar sin password
+  const { password: _, ...userWithoutPassword } = result.user;
+
+  return {
+    user: userWithoutPassword,
+    gym: result.gym,
+    membership: result.membership,
+  };
+};
+
+// ── Gym Admin Creation (solo GYM_OWNER puede crear) ──────────────────────────
+
+export const createGymAdmin = async (ownerId, userData) => {
+  const { email, password, name, last_name, role, plan, notes } = userData;
+
+  // Validar campos obligatorios
+  if (!email || !password) {
+    throw new Error("EMAIL_AND_PASSWORD_REQUIRED");
+  }
+
+  // Hash de la contraseña
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // Crear usuario + membresía (valida owner y gym dentro de la transacción)
+  const result = await userRepository.createGymAdmin(ownerId, {
+    email,
+    password: hashedPassword,
+    name: name || null,
+    last_name: last_name || null,
+    role: role || "USER",
+    plan: plan || null,
+    notes: notes || null,
+  });
+
+  // Retornar sin password
+  const { password: _, ...userWithoutPassword } = result.user;
+
+  return {
+    user: userWithoutPassword,
+    gym: result.gym,
+    membership: result.membership,
+  };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const getISOWeekNumber = (date) => {
   const tempDate = new Date(date.getTime());
   tempDate.setHours(0, 0, 0, 0);

@@ -312,6 +312,117 @@ export const updateUserRole = async (userId, role) => {
   return { id: result.id, email: result.email, role: result.role };
 };
 
+/**
+ * Crea un usuario y lo asigna como GYM_OWNER a un gym existente.
+ * Transacción atómica: si falla algo, no queda nada a medias.
+ */
+export const createGymOwner = async (userData, gymId) => {
+  return await prisma.$transaction(async (tx) => {
+    // 1. Validar que el gym existe
+    const gym = await tx.gyms.findUnique({ where: { id: gymId } });
+    if (!gym) {
+      throw new Error("GYM_NOT_FOUND");
+    }
+
+    // 2. Crear el usuario
+    const user = await tx.user.create({
+      data: {
+        email: userData.email,
+        password: userData.password,
+        name: userData.name || null,
+        last_name: userData.last_name || null,
+        role: userData.role || "USER",
+      },
+    });
+
+    // 3. Crear la membresía con rol GYM_OWNER
+    const membership = await tx.gym_memberships.create({
+      data: {
+        gym_id: gymId,
+        user_id: user.id,
+        status: "ACTIVE",
+        plan: userData.plan || null,
+        active_role: "GYM_OWNER",
+        gym_roles: ["GYM_OWNER"],
+        assigned_by: userData.assigned_by || null,
+        notes: userData.notes || null,
+      },
+    });
+
+    return { user, gym, membership };
+  }, {
+    isolationLevel: "Serializable",
+  });
+};
+
+/**
+ * Crea un admin de gym. El ownerId debe tener una membresía activa como GYM_OWNER.
+ * El nuevo usuario se asigna al mismo gym del owner.
+ * Transacción atómica.
+ */
+export const createGymAdmin = async (ownerId, userData) => {
+  return await prisma.$transaction(async (tx) => {
+    // 1. Obtener la membresía del owner y verificar que sea GYM_OWNER
+    const ownerMembership = await tx.gym_memberships.findUnique({
+      where: { user_id: ownerId },
+      select: { gym_id: true, gym_roles: true },
+    });
+
+    if (!ownerMembership) {
+      throw new Error("OWNER_NO_MEMBERSHIP");
+    }
+
+    if (!ownerMembership.gym_roles.includes("GYM_OWNER")) {
+      throw new Error("NOT_GYM_OWNER");
+    }
+
+    // 2. Verificar que el email no exista
+    const existingUser = await tx.user.findUnique({
+      where: { email: userData.email },
+      select: { id: true },
+    });
+
+    if (existingUser) {
+      throw new Error("USER_ALREADY_EXISTS");
+    }
+
+    // 3. Crear el usuario admin
+    const user = await tx.user.create({
+      data: {
+        email: userData.email,
+        password: userData.password,
+        name: userData.name || null,
+        last_name: userData.last_name || null,
+        role: userData.role || "USER",
+      },
+    });
+
+    // 4. Crear la membresía con rol GYM_ADMIN
+    const membership = await tx.gym_memberships.create({
+      data: {
+        gym_id: ownerMembership.gym_id,
+        user_id: user.id,
+        status: "ACTIVE",
+        plan: userData.plan || null,
+        active_role: "GYM_ADMIN",
+        gym_roles: ["GYM_ADMIN"],
+        assigned_by: ownerId,
+        notes: userData.notes || null,
+      },
+    });
+
+    // 5. Obtener info del gym para retornar
+    const gym = await tx.gyms.findUnique({
+      where: { id: ownerMembership.gym_id },
+      select: { id: true, name: true, slug: true },
+    });
+
+    return { user, gym, membership };
+  }, {
+    isolationLevel: "Serializable",
+  });
+};
+
 export const getWeeklyActivity = async (userId, week, year) => {
   const weekStart = getWeekStart(week, year);
   const weekEnd = new Date(weekStart);

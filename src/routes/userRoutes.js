@@ -14,6 +14,8 @@ import {
   verifyResetCode,
   resetPassword,
   switchActiveRole,
+  createGymOwner,
+  createGymAdmin,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -28,6 +30,8 @@ router.post("/verify-reset-code", authLimiter, verifyResetCode);
 router.post("/reset-password", authLimiter, resetPassword);
 
 // rutas privadas
+router.post("/create-gym-owner", authenticateToken, createGymOwner);
+router.post("/create-gym-admin", authenticateToken, createGymAdmin);
 router.post("/logout", authenticateToken, logout);
 router.get("/all-users", authenticateToken, getUsers);
 router.get("/profile", authenticateToken, getProfile);
