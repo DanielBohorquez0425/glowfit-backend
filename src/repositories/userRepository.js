@@ -23,6 +23,48 @@ export const findByEmail = async (email) => {
   });
 };
 
+export const findByEmailWithMembership = async (email) => {
+  return await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      name: true,
+      last_name: true,
+      date_of_birth: true,
+      weight: true,
+      height: true,
+      bmi: true,
+      gender: true,
+      level: true,
+      created_at: true,
+      updated_at: true,
+      role: true,
+      gym_membership: {
+        select: {
+          gym_id: true,
+          status: true,
+          gym_roles: true,
+          active_role: true,
+          plan: true,
+          start_date: true,
+          end_date: true,
+          gyms: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logo_url: true,
+              city: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
 export const create = async (data) => {
   return await prisma.user.create({
     data,

@@ -57,7 +57,7 @@ export const register = async (userData) => {
 };
 
 export const login = async (email, password) => {
-  const user = await userRepository.findByEmail(email);
+  const user = await userRepository.findByEmailWithMembership(email);
   if (!user) {
     throw new Error("Credenciales inválidas");
   }
@@ -70,9 +70,11 @@ export const login = async (email, password) => {
   const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
   const accessToken = generateAccessToken(user.id, user.email, newTokenVersion);
 
-  const { password: _, ...userWithoutPassword } = user;
+  const { gym_membership, password: _, ...userWithoutPassword } = user;
 
-  return { user: userWithoutPassword, accessToken };
+  const mappedMembership = mapGymMembership(gym_membership);
+
+  return { user: { ...userWithoutPassword, gym_membership: mappedMembership }, accessToken };
 };
 
 
