@@ -23,3 +23,26 @@ export const sendPasswordResetCode = async (email, code) => {
     `,
   });
 };
+
+export const sendPasswordSetupEmail = async (email, token) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const setupLink = `${frontendUrl}/setup-password?token=${token}`;
+
+  await getResend().emails.send({
+    from: "GlowFit <onboarding@resend.dev>",
+    to: email,
+    subject: "Establece tu contraseña - GlowFit",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9f9f9; border-radius: 12px;">
+        <h2 style="color: #1a1a1a; margin-bottom: 8px;">¡Bienvenido a GlowFit!</h2>
+        <p style="color: #555; margin-bottom: 24px;">Has sido invitado a formar parte de GlowFit. Haz clic en el botón para establecer tu contraseña y acceder al dashboard.</p>
+        <a href="${setupLink}" style="display: inline-block; background: #1a1a1a; color: #fff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 24px;">
+          Establecer contraseña
+        </a>
+        <p style="color: #999; font-size: 12px; margin-top: 24px;">Este link expira en <strong>24 horas</strong>. Si no esperabas este correo, ignóralo.</p>
+        <p style="color: #bbb; font-size: 11px; margin-top: 16px;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
+        <p style="color: #999; font-size: 11px; word-break: break-all;">${setupLink}</p>
+      </div>
+    `,
+  });
+};

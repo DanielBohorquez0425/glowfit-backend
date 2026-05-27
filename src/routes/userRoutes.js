@@ -13,6 +13,7 @@ import {
   forgotPassword,
   verifyResetCode,
   resetPassword,
+  setupPassword,
   switchActiveRole,
   createGymOwner,
   createGymAdmin,
@@ -28,6 +29,7 @@ router.post("/login", authLimiter, login);
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/verify-reset-code", authLimiter, verifyResetCode);
 router.post("/reset-password", authLimiter, resetPassword);
+router.post("/setup-password", authLimiter, setupPassword);
 
 // rutas privadas
 router.post("/create-gym-owner", authenticateToken, createGymOwner);

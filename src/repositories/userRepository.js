@@ -346,6 +346,38 @@ export const updatePassword = async (userId, hashedPassword) => {
   });
 };
 
+// ── Password Setup Tokens ────────────────────────────────────────────────────
+
+export const createPasswordSetupToken = async (userId, hashedToken) => {
+  // Invalidar tokens previos del mismo usuario
+  await prisma.passwordSetupToken.updateMany({
+    where: { user_id: userId, used: false },
+    data: { used: true },
+  });
+
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas
+  return await prisma.passwordSetupToken.create({
+    data: { user_id: userId, token: hashedToken, expires_at: expiresAt },
+  });
+};
+
+export const findValidPasswordSetupToken = async (hashedToken) => {
+  return await prisma.passwordSetupToken.findFirst({
+    where: {
+      token: hashedToken,
+      used: false,
+      expires_at: { gt: new Date() },
+    },
+  });
+};
+
+export const markPasswordSetupTokenAsUsed = async (id) => {
+  return await prisma.passwordSetupToken.update({
+    where: { id },
+    data: { used: true },
+  });
+};
+
 export const updateUserRole = async (userId, role) => {
   const result = await prisma.user.update({
     where: { id: userId },

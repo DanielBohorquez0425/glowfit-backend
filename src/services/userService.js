@@ -1,9 +1,10 @@
 import * as userRepository from "../repositories/userRepository.js";
 import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { generateAccessToken } from "../utils/jwtUtils.js";
-import { sendPasswordResetCode } from "./emailService.js";
+import { sendPasswordResetCode, sendPasswordSetupEmail } from "./emailService.js";
 
 const calculateBMI = (weight, height) => {
   if (!weight || !height || weight <= 0 || height <= 0) {
@@ -269,9 +270,9 @@ export const resetPassword = async (resetToken, newPassword) => {
 export const createGymOwner = async (userData, gymId, assignedById) => {
   const { email, password, name, last_name, role, plan, notes } = userData;
 
-  // Validar campos obligatorios del usuario
-  if (!email || !password) {
-    throw new Error("EMAIL_AND_PASSWORD_REQUIRED");
+  // Validar campos obligatorios del usuario (password ya no es obligatorio)
+  if (!email) {
+    throw new Error("EMAIL_REQUIRED");
   }
 
   // Validar que el email no exista
@@ -285,8 +286,9 @@ export const createGymOwner = async (userData, gymId, assignedById) => {
     throw new Error("GYM_ID_REQUIRED");
   }
 
-  // Hash de la contraseña
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Si no se proporciona password, generar uno random (el usuario no podrá hacer login hasta completar setup)
+  const finalPassword = password || crypto.randomUUID();
+  const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
   // Crear usuario + membresía atómicamente (valida gym dentro de la transacción)
   const result = await userRepository.createGymOwner(
@@ -303,6 +305,11 @@ export const createGymOwner = async (userData, gymId, assignedById) => {
     gymId
   );
 
+  // Si no se proporcionó password, generar token de setup y enviar email
+  if (!password) {
+    await sendPasswordSetupToken(email, result.user.id);
+  }
+
   // Retornar sin password
   const { password: _, ...userWithoutPassword } = result.user;
 
@@ -310,6 +317,7 @@ export const createGymOwner = async (userData, gymId, assignedById) => {
     user: userWithoutPassword,
     gym: result.gym,
     membership: result.membership,
+    password_setup_sent: !password,
   };
 };
 
@@ -318,13 +326,14 @@ export const createGymOwner = async (userData, gymId, assignedById) => {
 export const createGymAdmin = async (ownerId, userData) => {
   const { email, password, name, last_name, role, plan, notes } = userData;
 
-  // Validar campos obligatorios
-  if (!email || !password) {
-    throw new Error("EMAIL_AND_PASSWORD_REQUIRED");
+  // Validar campos obligatorios (password ya no es obligatorio)
+  if (!email) {
+    throw new Error("EMAIL_REQUIRED");
   }
 
-  // Hash de la contraseña
-  const hashedPassword = await bcrypt.hash(password, 10);
+  // Si no se proporciona password, generar uno random
+  const finalPassword = password || crypto.randomUUID();
+  const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
   // Crear usuario + membresía (valida owner y gym dentro de la transacción)
   const result = await userRepository.createGymAdmin(ownerId, {
@@ -337,6 +346,11 @@ export const createGymAdmin = async (ownerId, userData) => {
     notes: notes || null,
   });
 
+  // Si no se proporcionó password, generar token de setup y enviar email
+  if (!password) {
+    await sendPasswordSetupToken(email, result.user.id);
+  }
+
   // Retornar sin password
   const { password: _, ...userWithoutPassword } = result.user;
 
@@ -344,7 +358,42 @@ export const createGymAdmin = async (ownerId, userData) => {
     user: userWithoutPassword,
     gym: result.gym,
     membership: result.membership,
+    password_setup_sent: !password,
   };
+};
+
+// ── Password Setup (invitación para establecer contraseña) ──────────────────
+
+const sendPasswordSetupToken = async (email, userId) => {
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+
+  await userRepository.createPasswordSetupToken(userId, hashedToken);
+  await sendPasswordSetupEmail(email, rawToken);
+};
+
+export const setupPassword = async (token, newPassword) => {
+  if (!token || !newPassword) {
+    throw new Error("TOKEN_AND_PASSWORD_REQUIRED");
+  }
+
+  // Hashear el token recibido para buscarlo en DB
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const record = await userRepository.findValidPasswordSetupToken(hashedToken);
+  if (!record) {
+    throw new Error("INVALID_TOKEN");
+  }
+
+  // Actualizar la contraseña del usuario
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await userRepository.updatePassword(record.user_id, hashedPassword);
+
+  // Marcar token como usado
+  await userRepository.markPasswordSetupTokenAsUsed(record.id);
+
+  // Invalidar tokens de acceso anteriores (por si el usuario ya existía con otra password)
+  await userRepository.incrementTokenVersion(record.user_id);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -172,15 +172,15 @@ export const createGymOwner = async (req, res) => {
   // TODO: Restringir este endpoint a personal de GlowFit (role ADMIN o SUPERADMIN)
   const { email, password, name, last_name, role, gym_id, plan, notes } = req.body;
 
-  // Validar campos obligatorios del usuario
-  if (!email || !password) {
+  // Validar campos obligatorios del usuario (password es opcional)
+  if (!email) {
     return res.status(400).json({
-      error: "El email y la contraseña son obligatorios.",
+      error: "El email es obligatorio.",
     });
   }
 
-  // Validar contraseña mínima
-  if (password.length < 6) {
+  // Validar contraseña mínima solo si se proporciona
+  if (password && password.length < 6) {
     return res.status(400).json({
       error: "La contraseña debe tener al menos 6 caracteres.",
     });
@@ -200,8 +200,12 @@ export const createGymOwner = async (req, res) => {
       req.user.userId // quién crea el gym owner (el admin)
     );
 
+    const message = result.password_setup_sent
+      ? "Gym owner creado exitosamente. Se envió un email para establecer la contraseña."
+      : "Gym owner creado exitosamente";
+
     return res.status(201).json({
-      message: "Gym owner creado exitosamente",
+      message,
       data: result,
     });
   } catch (error) {
@@ -220,15 +224,15 @@ export const createGymOwner = async (req, res) => {
 export const createGymAdmin = async (req, res) => {
   const { email, password, name, last_name, role, plan, notes } = req.body;
 
-  // Validar campos obligatorios
-  if (!email || !password) {
+  // Validar campos obligatorios (password es opcional)
+  if (!email) {
     return res.status(400).json({
-      error: "El email y la contraseña son obligatorios.",
+      error: "El email es obligatorio.",
     });
   }
 
-  // Validar contraseña mínima
-  if (password.length < 6) {
+  // Validar contraseña mínima solo si se proporciona
+  if (password && password.length < 6) {
     return res.status(400).json({
       error: "La contraseña debe tener al menos 6 caracteres.",
     });
@@ -240,8 +244,12 @@ export const createGymAdmin = async (req, res) => {
       { email, password, name, last_name, role, plan, notes }
     );
 
+    const message = result.password_setup_sent
+      ? "Administrador del gym creado exitosamente. Se envió un email para establecer la contraseña."
+      : "Administrador del gym creado exitosamente";
+
     return res.status(201).json({
-      message: "Administrador del gym creado exitosamente",
+      message,
       data: result,
     });
   } catch (error) {
@@ -312,6 +320,32 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ error: "Token inválido o expirado." });
     }
     console.error("Error en resetPassword:", error);
+    return res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
+// Establecer contraseña desde invitación (setup token)
+export const setupPassword = async (req, res) => {
+  const { token, password, confirm_password } = req.body;
+
+  if (!token || !password || !confirm_password) {
+    return res.status(400).json({ error: "Todos los campos son obligatorios." });
+  }
+  if (password !== confirm_password) {
+    return res.status(400).json({ error: "Las contraseñas no coinciden." });
+  }
+  if (password.length < 6) {
+    return res.status(400).json({ error: "La contraseña debe tener al menos 6 caracteres." });
+  }
+
+  try {
+    await userService.setupPassword(token, password);
+    return res.json({ message: "Contraseña establecida exitosamente. Ya puedes iniciar sesión." });
+  } catch (error) {
+    if (error.message === "INVALID_TOKEN") {
+      return res.status(400).json({ error: "Token inválido o expirado." });
+    }
+    console.error("Error en setupPassword:", error);
     return res.status(500).json({ error: "Error interno del servidor." });
   }
 };
