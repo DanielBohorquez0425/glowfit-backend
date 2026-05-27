@@ -68,22 +68,4 @@ export const getInvitationsByUserEmail = async (email) => {
   }));
 };
 
-export const getMembersByGymId = async (gymId) => {
-  if (!gymId) {
-    throw new Error("El ID del gym es obligatorio");
-  }
-  const members = await gymMembershipRepository.findMembersByGymId(gymId);
 
-  return members.map((m) => ({
-    membership_id: m.id,
-    gym_id: m.gym_id,
-    status: m.status,
-    gym_roles: m.gym_roles,
-    active_role: m.active_role,
-    plan: m.plan,
-    start_date: m.start_date,
-    end_date: m.end_date,
-    created_at: m.created_at,
-    user: m.users_gym_memberships_user_idTousers,
-  }));
-};

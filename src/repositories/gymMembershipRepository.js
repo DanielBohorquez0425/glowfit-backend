@@ -21,25 +21,6 @@ export const findMembershipByUserId = async (user_id) => {
   });
 };
 
-export const findMembersByGymId = async (gym_id) => {
-  return await prisma.gym_memberships.findMany({
-    where: { gym_id },
-    include: {
-      users_gym_memberships_user_idTousers: {
-        select: {
-          id: true,
-          name: true,
-          last_name: true,
-          email: true,
-          gender: true,
-          level: true,
-        },
-      },
-    },
-    orderBy: { created_at: "desc" },
-  });
-};
-
 export const updateMembershipGymRole = async (membershipId, gymRole) => {
   return await prisma.gym_memberships.update({
     where: { id: membershipId },
@@ -97,4 +78,73 @@ export const setActiveRole = async (membershipId, role) => {
     where: { id: membershipId },
     data: { active_role: role },
   });
+};
+
+/**
+ * Lista usuarios de un gym con paginación y filtro por rol.
+ *
+ * @param {string} gymId - ID del gym
+ * @param {Object} options
+ * @param {number} options.limit - Cantidad por página
+ * @param {number} options.offset - Offset para paginación
+ * @param {string} [options.role] - Filtrar por GymRole (ej: 'TRAINER', 'MEMBER')
+ * @returns {{ users: Array, total: number }}
+ */
+export const findUsersByGymId = async (gymId, options = {}) => {
+  const { limit = 20, offset = 0, role } = options;
+
+  const where = { gym_id: gymId };
+
+  if (role) {
+    where.active_role = role;
+  }
+
+  const [memberships, total] = await Promise.all([
+    prisma.gym_memberships.findMany({
+      where,
+      select: {
+        id: true,
+        active_role: true,
+        gym_roles: true,
+        status: true,
+        plan: true,
+        start_date: true,
+        end_date: true,
+        created_at: true,
+        users_gym_memberships_user_idTousers: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            last_name: true,
+            gender: true,
+            level: true,
+            date_of_birth: true,
+            height: true,
+            weight: true,
+            goal_id: true,
+          },
+        },
+      },
+      orderBy: { created_at: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.gym_memberships.count({ where }),
+  ]);
+
+  // Aplanar la estructura para que el user quede al nivel raíz
+  const users = memberships.map((m) => ({
+    membership_id: m.id,
+    active_role: m.active_role,
+    gym_roles: m.gym_roles,
+    status: m.status,
+    plan: m.plan,
+    start_date: m.start_date,
+    end_date: m.end_date,
+    member_since: m.created_at,
+    ...m.users_gym_memberships_user_idTousers,
+  }));
+
+  return { users, total };
 };

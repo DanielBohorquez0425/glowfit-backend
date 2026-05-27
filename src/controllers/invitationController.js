@@ -87,19 +87,4 @@ export const getInvitationsByUserEmail = async (req, res) => {
   }
 };
 
-export const getMembersByGymId = async (req, res) => {
-  try {
-    const { gymId } = req.params;
-    const members = await invitationService.getMembersByGymId(gymId);
-    res.status(200).json({
-      success: true,
-      data: members,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error obteniendo miembros del gimnasio",
-      success: false,
-      error: error.message,
-    });
-  }
-};
+
