@@ -17,6 +17,14 @@ export const findTokenVersionById = async (id) => {
   return user?.token_version;
 };
 
+export const findRoleById = async (id) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { role: true },
+  });
+  return user?.role;
+};
+
 export const findByEmail = async (email) => {
   return await prisma.user.findUnique({
     where: { email },

@@ -1,5 +1,5 @@
 import { verifyToken } from '../utils/jwtUtils.js';
-import { findTokenVersionById } from '../repositories/userRepository.js';
+import { findTokenVersionById, findRoleById } from '../repositories/userRepository.js';
 import { findMembershipByUserId } from '../repositories/gymMembershipRepository.js';
 
 export const authenticateToken = async (req, res, next) => {
@@ -69,6 +69,38 @@ export const requireGymRole = (...allowedRoles) => {
       next();
     } catch (error) {
       console.error("Error en requireGymRole:", error);
+      res.status(500).json({ error: "Error interno de autorización" });
+    }
+  };
+};
+
+/**
+ * Middleware de autorización por rol GLOBAL del usuario (UserGlobalRole).
+ * DEBE usarse DESPUÉS de authenticateToken.
+ *
+ * Lee el rol fresco desde la DB con req.user.userId y verifica que
+ * esté dentro de los roles permitidos.
+ *
+ * @param  {...string} allowedRoles - Roles permitidos (ej: 'ADMIN', 'SUPERADMIN')
+ * @returns {Function} Express middleware
+ *
+ * Uso:
+ *   router.post("/send", authenticateToken, requireGlobalRole("ADMIN", "SUPERADMIN"), handler);
+ */
+export const requireGlobalRole = (...allowedRoles) => {
+  return async (req, res, next) => {
+    try {
+      const role = await findRoleById(req.user.userId);
+
+      if (!role || !allowedRoles.includes(role)) {
+        return res.status(403).json({
+          error: `No tienes permisos. Se requiere uno de estos roles: ${allowedRoles.join(", ")}`,
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error("Error en requireGlobalRole:", error);
       res.status(500).json({ error: "Error interno de autorización" });
     }
   };
