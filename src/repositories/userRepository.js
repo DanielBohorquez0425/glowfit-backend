@@ -38,6 +38,7 @@ export const findByEmailWithMembership = async (email) => {
       bmi: true,
       gender: true,
       level: true,
+      goal_id: true,
       created_at: true,
       updated_at: true,
       role: true,
