@@ -91,6 +91,7 @@ const mapGymMembership = (rawMembership) => {
     gym_roles: rawMembership.gym_roles,
     active_role: rawMembership.active_role,
     trainer_id: rawMembership.trainer_id,
+    trainer: rawMembership.users_gym_memberships_trainer_idTousers || null,
     plan: rawMembership.plan,
     start_date: rawMembership.start_date,
     end_date: rawMembership.end_date,
