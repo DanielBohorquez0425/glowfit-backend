@@ -376,6 +376,67 @@ export const switchActiveRole = async (req, res) => {
   }
 };
 
+export const assignTrainer = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { trainerId } = req.body;
+
+    if (!trainerId) {
+      return res.status(400).json({ error: "El trainerId es obligatorio" });
+    }
+
+    const updatedMembership = await userService.assignTrainer(userId, trainerId);
+
+    res.json({
+      message: "Entrenador asignado correctamente",
+      data: updatedMembership,
+    });
+  } catch (error) {
+    if (error.message === "CANNOT_ASSIGN_SELF") {
+      return res.status(400).json({ error: "Un usuario no puede ser su propio entrenador" });
+    }
+    if (error.message === "MEMBER_NO_MEMBERSHIP") {
+      return res.status(404).json({ error: "El usuario no tiene membresía en ningún gym" });
+    }
+    if (error.message === "TRAINER_NO_MEMBERSHIP") {
+      return res.status(404).json({ error: "El entrenador no tiene membresía en ningún gym" });
+    }
+    if (error.message === "NOT_A_TRAINER") {
+      return res.status(400).json({ error: "El usuario indicado no tiene el rol TRAINER" });
+    }
+    if (error.message === "TRAINER_DIFFERENT_GYM") {
+      return res.status(400).json({ error: "El entrenador pertenece a otro gimnasio" });
+    }
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Registro no encontrado" });
+    }
+    console.error("Error al asignar entrenador:", error);
+    res.status(500).json({ error: "Error al asignar entrenador" });
+  }
+};
+
+export const unassignTrainer = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const updatedMembership = await userService.unassignTrainer(userId);
+
+    res.json({
+      message: "Entrenador desasignado correctamente",
+      data: updatedMembership,
+    });
+  } catch (error) {
+    if (error.message === "MEMBER_NO_MEMBERSHIP") {
+      return res.status(404).json({ error: "El usuario no tiene membresía en ningún gym" });
+    }
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Registro no encontrado" });
+    }
+    console.error("Error al desasignar entrenador:", error);
+    res.status(500).json({ error: "Error al desasignar entrenador" });
+  }
+};
+
 export const getUserActivity = async (req, res) => {
   try {
     const { id } = req.params;

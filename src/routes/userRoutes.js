@@ -17,8 +17,10 @@ import {
   switchActiveRole,
   createGymOwner,
   createGymAdmin,
+  assignTrainer,
+  unassignTrainer,
 } from "../controllers/userController.js";
-import { authenticateToken } from "../middlewares/authMiddleware.js";
+import { authenticateToken, requireGlobalRole } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
 
 const router = express.Router();
@@ -43,5 +45,17 @@ router.get("/:id/activity/weekly", authenticateToken, getWeeklyActivity);
 router.get("/:id", authenticateToken, getUserById);
 router.put("/:id", authenticateToken, updateUser);
 router.patch("/:userId/active-routine", authenticateToken, setActiveRoutine);
+router.patch(
+  "/:userId/trainer",
+  authenticateToken,
+  requireGlobalRole("ADMIN", "SUPERADMIN"),
+  assignTrainer
+);
+router.delete(
+  "/:userId/trainer",
+  authenticateToken,
+  requireGlobalRole("ADMIN", "SUPERADMIN"),
+  unassignTrainer
+);
 
 export default router;

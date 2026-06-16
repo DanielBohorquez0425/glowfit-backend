@@ -21,6 +21,13 @@ export const findMembershipByUserId = async (user_id) => {
   });
 };
 
+export const assignTrainer = async (membershipId, trainerId) => {
+  return await prisma.gym_memberships.update({
+    where: { id: membershipId },
+    data: { trainer_id: trainerId },
+  });
+};
+
 export const updateMembershipGymRole = async (membershipId, gymRole) => {
   return await prisma.gym_memberships.update({
     where: { id: membershipId },

@@ -90,6 +90,7 @@ const mapGymMembership = (rawMembership) => {
     status: rawMembership.status,
     gym_roles: rawMembership.gym_roles,
     active_role: rawMembership.active_role,
+    trainer_id: rawMembership.trainer_id,
     plan: rawMembership.plan,
     start_date: rawMembership.start_date,
     end_date: rawMembership.end_date,
@@ -139,6 +140,48 @@ export const switchActiveRole = async (userId, role) => {
   }
 
   const updated = await gymMembershipRepository.setActiveRole(membership.id, role);
+
+  return mapGymMembership(updated);
+};
+
+export const assignTrainer = async (memberUserId, trainerId) => {
+  if (memberUserId === trainerId) {
+    throw new Error("CANNOT_ASSIGN_SELF");
+  }
+
+  const memberMembership = await gymMembershipRepository.findMembershipByUserId(memberUserId);
+
+  if (!memberMembership) {
+    throw new Error("MEMBER_NO_MEMBERSHIP");
+  }
+
+  const trainerMembership = await gymMembershipRepository.findMembershipByUserId(trainerId);
+
+  if (!trainerMembership) {
+    throw new Error("TRAINER_NO_MEMBERSHIP");
+  }
+
+  if (!trainerMembership.gym_roles.includes("TRAINER")) {
+    throw new Error("NOT_A_TRAINER");
+  }
+
+  if (memberMembership.gym_id !== trainerMembership.gym_id) {
+    throw new Error("TRAINER_DIFFERENT_GYM");
+  }
+
+  const updated = await gymMembershipRepository.assignTrainer(memberMembership.id, trainerId);
+
+  return mapGymMembership(updated);
+};
+
+export const unassignTrainer = async (memberUserId) => {
+  const memberMembership = await gymMembershipRepository.findMembershipByUserId(memberUserId);
+
+  if (!memberMembership) {
+    throw new Error("MEMBER_NO_MEMBERSHIP");
+  }
+
+  const updated = await gymMembershipRepository.assignTrainer(memberMembership.id, null);
 
   return mapGymMembership(updated);
 };

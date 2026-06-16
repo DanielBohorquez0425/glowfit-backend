@@ -27,6 +27,7 @@ model User {
   token_version          Int                   @default(0)
   role                   UserGlobalRole        @default(USER)
   assigned_memberships   gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
+  trained_memberships    gym_memberships[]     @relation("gym_memberships_trainer_idTousers")
   gym_membership         gym_memberships?      @relation("gym_memberships_user_idTousers")
   password_reset_codes   PasswordResetCode[]
   password_setup_tokens  PasswordSetupToken[]
@@ -259,16 +260,18 @@ model gym_memberships {
   gym_id                                   String            @db.Uuid
   user_id                                  String            @unique(map: "unique_user_membership") @db.Uuid
   status                                   membership_status @default(ACTIVE)
-  gym_roles                                GymRole[]
-  active_role                              GymRole           @default(MEMBER)
   plan                                     String?           @db.VarChar(100)
   start_date                               DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
   end_date                                 DateTime?         @db.Date
   assigned_by                              String?           @db.Uuid
+  trainer_id                               String?           @db.Uuid
   notes                                    String?
   created_at                               DateTime?         @default(now()) @db.Timestamp(6)
   updated_at                               DateTime?         @default(now()) @db.Timestamp(6)
+  active_role                              GymRole           @default(MEMBER)
+  gym_roles                                GymRole[]
   users_gym_memberships_assigned_byTousers User?             @relation("gym_memberships_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
+  users_gym_memberships_trainer_idTousers  User?             @relation("gym_memberships_trainer_idTousers", fields: [trainer_id], references: [id], onUpdate: NoAction)
   gyms                                     gyms              @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users_gym_memberships_user_idTousers     User              @relation("gym_memberships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
@@ -313,9 +316,9 @@ enum invitation_status {
 
 enum UserGlobalRole {
   USER
-  MEMBER
   ADMIN
   SUPERADMIN
+  MEMBER
 }
 
 enum GymRole {
