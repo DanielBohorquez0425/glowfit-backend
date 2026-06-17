@@ -72,7 +72,7 @@ export const acceptInvitation = async (req, res) => {
 
 export const getInvitationsByUserEmail = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email } = req.user;
     const invitations = await invitationService.getInvitationsByUserEmail(email);
     res.status(200).json({
       success: true,
