@@ -155,3 +155,13 @@ export const findUsersByGymId = async (gymId, options = {}) => {
 
   return { users, total };
 };
+
+export const countNewMembersByDateRange = async (gymId, from, to) => {
+  return await prisma.gym_memberships.count({
+    where: {
+      gym_id: gymId,
+      active_role: "MEMBER",
+      created_at: { gte: from, lte: to },
+    },
+  });
+};
