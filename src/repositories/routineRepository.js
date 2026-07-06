@@ -2,6 +2,25 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const buildSetsCreate = (exercise) => {
+  if (Array.isArray(exercise.sets)) {
+    return exercise.sets.map((set, index) => ({
+      set_number: set.set_number ?? index + 1,
+      weight: set.weight,
+      reps: set.reps,
+      rest_time: set.rest_time,
+    }));
+  }
+
+  const count = Number(exercise.sets) || 0;
+  return Array.from({ length: count }, (_, index) => ({
+    set_number: index + 1,
+    weight: exercise.weight,
+    reps: exercise.reps,
+    rest_time: exercise.rest_time,
+  }));
+};
+
 export const checkExistingRoutinesForDays = async (userId, dayIds) => {
   const existingRoutines = await prisma.routines.findFirst({
     where: {
@@ -60,17 +79,20 @@ export const createRoutine = async (data) => {
         create: exercises.map((exercise) => ({
           exercise_id: exercise.exercise_id,
           order_position: exercise.order_position,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          weight: exercise.weight,
-          rest_time: exercise.rest_time,
           notes: exercise.notes,
+          routine_exercise_sets: {
+            create: buildSetsCreate(exercise),
+          },
         })),
       },
     },
     include: {
       routine_days: true,
-      routine_exercises: true,
+      routine_exercises: {
+        include: {
+          routine_exercise_sets: true,
+        },
+      },
     },
   });
 };
@@ -83,7 +105,11 @@ export const getRoutineById = async (routineId) => {
     },
     include: {
       routine_days: true,
-      routine_exercises: true,
+      routine_exercises: {
+        include: {
+          routine_exercise_sets: true,
+        },
+      },
     },
   });
 };
@@ -96,7 +122,11 @@ export const getRoutinesByUserId = async (userId) => {
     },
     include: {
       routine_days: true,
-      routine_exercises: true,
+      routine_exercises: {
+        include: {
+          routine_exercise_sets: true,
+        },
+      },
     },
   });
 };
@@ -171,23 +201,26 @@ export const updateRoutine = async (id, data) => {
           day_id: dayId,
         })),
       },
-      // Replace routine exercises
+      // Replace routine exercises (cascade removes their old sets)
       routine_exercises: {
         deleteMany: {}, // Delete existing relations
         create: exercisesToProcess.map((exercise) => ({
           exercise_id: exercise.exercise_id,
           order_position: exercise.order_position,
-          sets: exercise.sets,
-          reps: exercise.reps,
-          weight: exercise.weight,
-          rest_time: exercise.rest_time,
           notes: exercise.notes,
+          routine_exercise_sets: {
+            create: buildSetsCreate(exercise),
+          },
         })),
       },
     },
     include: {
       routine_days: true,
-      routine_exercises: true,
+      routine_exercises: {
+        include: {
+          routine_exercise_sets: true,
+        },
+      },
     },
   });
 };

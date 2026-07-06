@@ -158,17 +158,32 @@ model routine_days {
 }
 
 model routine_exercises {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  routine_id     String?   @db.Uuid
-  exercise_id    String?   @db.Uuid
-  order_position Int
-  sets           Int?
-  reps           Int?
-  weight         Decimal?  @db.Decimal(10, 2)
-  rest_time      Int?
-  notes          String?
-  created_at     DateTime? @default(now()) @db.Timestamp(6)
-  routines       routines? @relation(fields: [routine_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routine_id            String?                 @db.Uuid
+  exercise_id           String?                 @db.Uuid
+  order_position        Int
+  sets                  Int?
+  reps                  Int?
+  weight                Decimal?                @db.Decimal(10, 2)
+  rest_time             Int?
+  notes                 String?
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  routine_exercise_sets routine_exercise_sets[]
+  routines              routines?               @relation(fields: [routine_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model routine_exercise_sets {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  routine_exercise_id String            @db.Uuid
+  set_number          Int
+  weight              Decimal?          @db.Decimal(10, 2)
+  reps                Int?
+  rest_time           Int?
+  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+  routine_exercises   routine_exercises @relation(fields: [routine_exercise_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([routine_exercise_id, set_number])
+  @@index([routine_exercise_id])
 }
 
 model routines {
@@ -264,15 +279,15 @@ model gym_memberships {
   start_date                               DateTime          @default(dbgenerated("CURRENT_DATE")) @db.Date
   end_date                                 DateTime?         @db.Date
   assigned_by                              String?           @db.Uuid
-  trainer_id                               String?           @db.Uuid
   notes                                    String?
   created_at                               DateTime?         @default(now()) @db.Timestamp(6)
   updated_at                               DateTime?         @default(now()) @db.Timestamp(6)
   active_role                              GymRole           @default(MEMBER)
   gym_roles                                GymRole[]
+  trainer_id                               String?           @db.Uuid
   users_gym_memberships_assigned_byTousers User?             @relation("gym_memberships_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
-  users_gym_memberships_trainer_idTousers  User?             @relation("gym_memberships_trainer_idTousers", fields: [trainer_id], references: [id], onUpdate: NoAction)
   gyms                                     gyms              @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users_gym_memberships_trainer_idTousers  User?             @relation("gym_memberships_trainer_idTousers", fields: [trainer_id], references: [id], onUpdate: NoAction)
   users_gym_memberships_user_idTousers     User              @relation("gym_memberships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 

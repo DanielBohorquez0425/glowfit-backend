@@ -15,6 +15,11 @@ export const createRoutine = async (req, res) => {
     const routine = await routineService.createRoutine(routineData);
     res.status(201).json(routine);
   } catch (error) {
+    if (error.message === "INVALID_SET") {
+      return res.status(400).json({
+        error: "Serie inválida: revisa reps, peso y tiempo de descanso",
+      });
+    }
     res
       .status(500)
       .json({ error: error.message || "Error al crear la rutina" });
@@ -123,6 +128,11 @@ export const updateRoutine = async (req, res) => {
     const routine = await routineService.updateRoutine(id, userId, req.body);
     res.json(routine);
   } catch (error) {
+    if (error.message === "INVALID_SET") {
+      return res.status(400).json({
+        error: "Serie inválida: revisa reps, peso y tiempo de descanso",
+      });
+    }
     const status =
       error.message === "Rutina no encontrada"
         ? 404

@@ -1,10 +1,37 @@
 import * as routineRepository from "../repositories/routineRepository.js";
 
+// Validates a single series. reps must be positive; weight/rest_time
+// (when provided) must not be negative.
+const validateSet = ({ reps, weight, rest_time }) => {
+  if (reps != null && reps <= 0) throw new Error("INVALID_SET");
+  if (weight != null && weight < 0) throw new Error("INVALID_SET");
+  if (rest_time != null && rest_time < 0) throw new Error("INVALID_SET");
+};
+
+// Validates the series of every exercise. Handles both the manual shape
+// (sets is an array of series) and the AI shape (sets is a count with
+// scalar reps/weight/rest_time).
+const validateExercises = (exercises = []) => {
+  for (const exercise of exercises) {
+    if (Array.isArray(exercise.sets)) {
+      exercise.sets.forEach(validateSet);
+    } else if (exercise.sets != null) {
+      validateSet({
+        reps: exercise.reps,
+        weight: exercise.weight,
+        rest_time: exercise.rest_time,
+      });
+    }
+  }
+};
+
 export const createRoutine = async (data) => {
   // Aquí se pueden agregar validaciones adicionales si es necesario
   if (!data.name || !data.user_id) {
     throw new Error("El nombre y el ID de usuario son obligatorios");
   }
+
+  validateExercises(data.exercises);
 
   // Validar límite de 15 rutinas por usuario
   const routineCount = await routineRepository.countUserRoutines(data.user_id);
@@ -73,6 +100,8 @@ export const updateRoutine = async (id, userId, data) => {
   if (existing.user_id !== userId) {
     throw new Error("No tienes permisos para editar esta rutina");
   }
+
+  validateExercises(data.exercises || data.routine_exercises);
 
   return await routineRepository.updateRoutine(id, data);
 };
