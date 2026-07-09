@@ -2,6 +2,24 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Shape returned by read queries. Exercises expose their per-set data through
+// routine_exercise_sets; the legacy exercise-level scalar columns
+// (sets/reps/weight/rest_time) are intentionally excluded.
+const routineInclude = {
+  routine_days: true,
+  routine_exercises: {
+    select: {
+      id: true,
+      routine_id: true,
+      exercise_id: true,
+      order_position: true,
+      notes: true,
+      created_at: true,
+      routine_exercise_sets: true,
+    },
+  },
+};
+
 const buildSetsCreate = (exercise) => {
   if (Array.isArray(exercise.sets)) {
     return exercise.sets.map((set, index) => ({
@@ -86,14 +104,7 @@ export const createRoutine = async (data) => {
         })),
       },
     },
-    include: {
-      routine_days: true,
-      routine_exercises: {
-        include: {
-          routine_exercise_sets: true,
-        },
-      },
-    },
+    include: routineInclude,
   });
 };
 
@@ -103,14 +114,7 @@ export const getRoutineById = async (routineId) => {
       id: routineId,
       deleted_at: null,
     },
-    include: {
-      routine_days: true,
-      routine_exercises: {
-        include: {
-          routine_exercise_sets: true,
-        },
-      },
-    },
+    include: routineInclude,
   });
 };
 
@@ -120,14 +124,7 @@ export const getRoutinesByUserId = async (userId) => {
       user_id: userId,
       deleted_at: null,
     },
-    include: {
-      routine_days: true,
-      routine_exercises: {
-        include: {
-          routine_exercise_sets: true,
-        },
-      },
-    },
+    include: routineInclude,
   });
 };
 
@@ -214,14 +211,7 @@ export const updateRoutine = async (id, data) => {
         })),
       },
     },
-    include: {
-      routine_days: true,
-      routine_exercises: {
-        include: {
-          routine_exercise_sets: true,
-        },
-      },
-    },
+    include: routineInclude,
   });
 };
 
