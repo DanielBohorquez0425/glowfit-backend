@@ -12,8 +12,12 @@ export const createRoutine = async (req, res) => {
       user_id: userId,
     };
 
-    const routine = await routineService.createRoutine(routineData);
-    res.status(201).json(routine);
+    const routines = await routineService.createRoutine(routineData);
+    res.status(201).json({
+      message: `${routines.length} rutina(s) creada(s) exitosamente`,
+      routines,
+      count: routines.length,
+    });
   } catch (error) {
     if (error.message === "INVALID_SET") {
       return res.status(400).json({
@@ -87,7 +91,7 @@ export const generateAIRoutine = async (req, res) => {
       };
 
       const savedRoutine = await routineService.createRoutine(routineData);
-      savedRoutines.push(savedRoutine);
+      savedRoutines.push(...savedRoutine);
     }
 
     res.status(201).json({

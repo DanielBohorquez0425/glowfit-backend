@@ -31,29 +31,46 @@ export const createRoutine = async (data) => {
     throw new Error("El nombre y el ID de usuario son obligatorios");
   }
 
+  const days = data.days ?? [];
+  if (days.length === 0) {
+    throw new Error("Debes seleccionar al menos un día");
+  }
+
   validateExercises(data.exercises);
 
-  // Validar límite de 15 rutinas por usuario
+  // Cada día se materializa como una rutina independiente, por lo que el
+  // límite de 15 debe contemplar todas las rutinas que se van a crear.
   const routineCount = await routineRepository.countUserRoutines(data.user_id);
-  if (routineCount >= 15) {
+  if (routineCount + days.length > 15) {
     throw new Error("Has alcanzado el límite máximo de 15 rutinas");
   }
 
-  // Validar si existen rutinas en los días especificados
-  if (data.days && data.days.length > 0) {
-    const hasExistingRoutines =
-      await routineRepository.checkExistingRoutinesForDays(
-        data.user_id,
-        data.days,
-      );
+  // Crear una rutina independiente por cada día seleccionado. Esto mantiene la
+  // regla de negocio "una rutina activa por día", ya que is_active vive en la
+  // fila de la rutina y ahora cada rutina pertenece a un único día.
+  const createdRoutines = [];
+  for (const dayId of days) {
+    let isActive = data.is_active;
 
-    // Si no se especificó is_active explícitamente, establecerlo según si existen rutinas
-    if (data.is_active === undefined) {
-      data.is_active = !hasExistingRoutines;
+    // Si no se especificó is_active, activarla solo cuando no haya otra rutina
+    // en ese día.
+    if (isActive === undefined) {
+      const hasExistingRoutines =
+        await routineRepository.checkExistingRoutinesForDays(data.user_id, [
+          dayId,
+        ]);
+      isActive = !hasExistingRoutines;
     }
+
+    const routine = await routineRepository.createRoutine({
+      ...data,
+      days: [dayId],
+      is_active: isActive,
+    });
+    createdRoutines.push(routine);
   }
 
-  return await routineRepository.createRoutine(data);
+  return createdRoutines;
 };
 
 export const getRoutineById = async (routineId) => {
