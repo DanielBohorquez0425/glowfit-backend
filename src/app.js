@@ -8,6 +8,7 @@ import routineRoutes from "./routes/routineRoutes.js";
 import popularRoutineRoutes from "./routes/popularRoutineRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import gymRoutes from "./routes/gymRoutes.js";
+import gymClassRoutes from "./routes/gymClassRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
 import { startResetCompletedRoutinesJob } from "./jobs/resetCompletedRoutines.js";
@@ -75,6 +76,9 @@ app.use("/invitations", invitationRoutes);
 
 // Rutas de gyms
 app.use("/gyms", gymRoutes);
+
+// Rutas de clases de gimnasio
+app.use("/gyms", gymClassRoutes);
 
 // Jobs
 startResetCompletedRoutinesJob();
