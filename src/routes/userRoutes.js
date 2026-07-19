@@ -15,7 +15,6 @@ import {
   resetPassword,
   setupPassword,
   switchActiveRole,
-  createGymOwner,
   createGymAdmin,
   assignTrainer,
   unassignTrainer,
@@ -34,7 +33,6 @@ router.post("/reset-password", authLimiter, resetPassword);
 router.post("/setup-password", authLimiter, setupPassword);
 
 // rutas privadas
-router.post("/create-gym-owner", authenticateToken, createGymOwner);
 router.post("/create-gym-admin", authenticateToken, createGymAdmin);
 router.post("/logout", authenticateToken, logout);
 router.get("/all-users", authenticateToken, getUsers);

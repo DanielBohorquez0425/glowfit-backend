@@ -35,6 +35,17 @@ export const findByGymAndRange = async (gymId, from, to) => {
   });
 };
 
+export const findByGymAndDate = async (gymId, date) => {
+  return await prisma.gym_classes.findMany({
+    where: {
+      gym_id: gymId,
+      class_date: date,
+    },
+    select: CLASS_SELECT,
+    orderBy: [{ start_minutes: "asc" }],
+  });
+};
+
 export const findById = async (id) => {
   return await prisma.gym_classes.findUnique({
     where: { id },

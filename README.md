@@ -100,7 +100,7 @@ Request → Route → Controller (validate) → Service (business logic) → Rep
 | `membership_status` | `ACTIVE`, `EXPIRED`, `SUSPENDED`, `CANCELLED` |
 | `invitation_status` | `PENDING`, `ACCEPTED`, `REJECTED` |
 | `UserGlobalRole` | `USER`, `ADMIN`, `SUPERADMIN`, `MEMBER` |
-| `GymRole` | `GYM_OWNER`, `GYM_ADMIN`, `TRAINER`, `MEMBER` |
+| `GymRole` | `GYM_ADMIN`, `TRAINER`, `MEMBER` |
 
 ## API Endpoints
 

@@ -25,6 +25,14 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+// Current server day at UTC midnight, matching how @db.Date values are stored.
+const todayUtc = () => {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+};
+
 const assertInstructorInGym = async (gymId, instructorId) => {
   if (!instructorId) throw new Error("INSTRUCTOR_NOT_FOUND");
 
@@ -90,6 +98,14 @@ export const listClasses = async (gymId, { from, to } = {}) => {
   }
 
   return await gymClassRepository.findByGymAndRange(gymId, fromDate, toDate);
+};
+
+export const listTodayClasses = async (gymId, { date } = {}) => {
+  const target = date === undefined ? todayUtc() : parseDate(date);
+
+  if (!target) throw new Error("INVALID_DATE");
+
+  return await gymClassRepository.findByGymAndDate(gymId, target);
 };
 
 export const createClass = async (gymId, payload) => {

@@ -1,7 +1,7 @@
 import * as gymService from "../services/gymService.js";
 
 // Roles válidos para el filtro
-const VALID_GYM_ROLES = ["GYM_OWNER", "GYM_ADMIN", "TRAINER", "MEMBER"];
+const VALID_GYM_ROLES = ["GYM_ADMIN", "TRAINER", "MEMBER"];
 
 export const listAllGyms = async (req, res) => {
   // TODO: Restringir este endpoint a SUPERADMIN
@@ -35,12 +35,12 @@ export const listAllGyms = async (req, res) => {
  * GET /gyms/:gymId/users
  *
  * Lista los usuarios pertenecientes a un gym.
- * Protegido: solo GYM_OWNER y GYM_ADMIN del gym pueden acceder.
+ * Protegido: solo GYM_ADMIN del gym puede acceder.
  *
  * Query params:
  *   - page (default: 1)
  *   - limit (default: 20, max: 100)
- *   - role (opcional, filtra por GymRole: GYM_OWNER, GYM_ADMIN, TRAINER, MEMBER)
+ *   - role (opcional, filtra por GymRole: GYM_ADMIN, TRAINER, MEMBER)
  */
 export const listGymUsers = async (req, res) => {
   try {

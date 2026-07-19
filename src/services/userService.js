@@ -309,65 +309,9 @@ export const resetPassword = async (resetToken, newPassword) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Gym Owner Creation ───────────────────────────────────────────────────────
+// ── Gym Admin Creation (solo GYM_ADMIN puede crear) ──────────────────────────
 
-export const createGymOwner = async (userData, gymId, assignedById) => {
-  const { email, password, name, last_name, role, plan, notes } = userData;
-
-  // Validar campos obligatorios del usuario (password ya no es obligatorio)
-  if (!email) {
-    throw new Error("EMAIL_REQUIRED");
-  }
-
-  // Validar que el email no exista
-  const existingUser = await userRepository.findByEmail(email);
-  if (existingUser) {
-    throw new Error("USER_ALREADY_EXISTS");
-  }
-
-  // Validar que el gym exista
-  if (!gymId) {
-    throw new Error("GYM_ID_REQUIRED");
-  }
-
-  // Si no se proporciona password, generar uno random (el usuario no podrá hacer login hasta completar setup)
-  const finalPassword = password || crypto.randomUUID();
-  const hashedPassword = await bcrypt.hash(finalPassword, 10);
-
-  // Crear usuario + membresía atómicamente (valida gym dentro de la transacción)
-  const result = await userRepository.createGymOwner(
-    {
-      email,
-      password: hashedPassword,
-      name: name || null,
-      last_name: last_name || null,
-      role: role || "USER",
-      assigned_by: assignedById || null,
-      plan: plan || null,
-      notes: notes || null,
-    },
-    gymId
-  );
-
-  // Si no se proporcionó password, generar token de setup y enviar email
-  if (!password) {
-    await sendPasswordSetupToken(email, result.user.id);
-  }
-
-  // Retornar sin password
-  const { password: _, ...userWithoutPassword } = result.user;
-
-  return {
-    user: userWithoutPassword,
-    gym: result.gym,
-    membership: result.membership,
-    password_setup_sent: !password,
-  };
-};
-
-// ── Gym Admin Creation (solo GYM_OWNER puede crear) ──────────────────────────
-
-export const createGymAdmin = async (ownerId, userData) => {
+export const createGymAdmin = async (creatorId, userData) => {
   const { email, password, name, last_name, role, plan, notes } = userData;
 
   // Validar campos obligatorios (password ya no es obligatorio)
@@ -379,8 +323,8 @@ export const createGymAdmin = async (ownerId, userData) => {
   const finalPassword = password || crypto.randomUUID();
   const hashedPassword = await bcrypt.hash(finalPassword, 10);
 
-  // Crear usuario + membresía (valida owner y gym dentro de la transacción)
-  const result = await userRepository.createGymAdmin(ownerId, {
+  // Crear usuario + membresía (valida creador y gym dentro de la transacción)
+  const result = await userRepository.createGymAdmin(creatorId, {
     email,
     password: hashedPassword,
     name: name || null,

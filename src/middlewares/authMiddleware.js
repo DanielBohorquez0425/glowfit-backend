@@ -34,11 +34,11 @@ export const authenticateToken = async (req, res, next) => {
  * 1. El usuario pertenezca al gym indicado en req.params.gymId
  * 2. Su active_role esté dentro de los roles permitidos
  *
- * @param  {...string} allowedRoles - Roles permitidos (ej: 'GYM_OWNER', 'GYM_ADMIN')
+ * @param  {...string} allowedRoles - Roles permitidos (ej: 'GYM_ADMIN', 'TRAINER')
  * @returns {Function} Express middleware
  *
  * Uso:
- *   router.get("/:gymId/users", authenticateToken, requireGymRole("GYM_OWNER", "GYM_ADMIN"), handler);
+ *   router.get("/:gymId/users", authenticateToken, requireGymRole("GYM_ADMIN"), handler);
  */
 export const requireGymRole = (...allowedRoles) => {
   return async (req, res, next) => {

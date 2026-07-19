@@ -86,6 +86,19 @@ export const listClasses = async (req, res) => {
   }
 };
 
+export const listTodayClasses = async (req, res) => {
+  try {
+    const { gymId } = req.params;
+    const { date } = req.query;
+
+    const classes = await gymClassService.listTodayClasses(gymId, { date });
+
+    res.json({ success: true, data: classes.map(toClassDto) });
+  } catch (error) {
+    handleError(res, error, "Error al obtener clases del día:");
+  }
+};
+
 export const createClass = async (req, res) => {
   try {
     const { gymId } = req.params;
