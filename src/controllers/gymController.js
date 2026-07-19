@@ -82,3 +82,14 @@ export const listGymUsers = async (req, res) => {
     res.status(500).json({ error: "Error interno al obtener los usuarios del gimnasio." });
   }
 };
+
+export const getNewMembersStats = async (req, res) => {
+  try {
+    const { gymId } = req.params;
+    const stats = await gymService.getNewMembersStats(gymId);
+    res.json({ success: true, data: stats });
+  } catch (error) {
+    console.error("Error al obtener estadísticas de nuevos miembros:", error);
+    res.status(500).json({ error: "Error interno al obtener estadísticas de miembros." });
+  }
+};

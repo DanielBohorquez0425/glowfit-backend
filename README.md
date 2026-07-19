@@ -151,6 +151,40 @@ Request → Route → Controller (validate) → Service (business logic) → Rep
 | POST | `/routines/generate-ai` | Required (aiLimiter) | Generate routine with AI |
 | PATCH | `/routines/:id/complete` | Required | Mark routine as completed |
 
+**`POST /routines` request body**
+
+Each exercise carries its per-set data inside the `sets` array. Do not send
+`reps`, `weight`, or `rest_time` at the exercise level — those values live per
+set. `set_number` is optional (auto-assigned by position when omitted).
+
+```json
+{
+  "name": "Strength routine",
+  "description": "Focused on building muscular strength",
+  "estimated_duration": 60,
+  "level": "intermediate",
+  "goal": "strength",
+  "is_active": true,
+  "days": [2],
+  "exercises": [
+    {
+      "exercise_id": "00288c10-c964-4744-97fa-c57c783f7eee",
+      "order_position": 1,
+      "notes": "Keep your back straight",
+      "sets": [
+        { "set_number": 1, "weight": 50.0, "reps": 8, "rest_time": 90 },
+        { "set_number": 2, "weight": 55.0, "reps": 6, "rest_time": 90 },
+        { "set_number": 3, "weight": 60.0, "reps": 4, "rest_time": 120 }
+      ]
+    }
+  ]
+}
+```
+
+- `days` is an array so a routine can be created for several days at once.
+- The AI generation endpoint (`POST /routines/generate-ai`) uses a different
+  exercise shape: `sets` is a count (number) plus scalar `reps`/`weight`/`rest_time`.
+
 ### Popular Routines (`/popular-routines`)
 
 | Method | Path | Auth | Description |
