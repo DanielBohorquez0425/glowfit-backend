@@ -26,6 +26,7 @@ model User {
   level                  userLevel             @default(beginner)
   token_version          Int                   @default(0)
   role                   UserGlobalRole        @default(USER)
+  gym_classes_instructor gym_classes[]         @relation("gym_classes_instructor")
   assigned_memberships   gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
   trained_memberships    gym_memberships[]     @relation("gym_memberships_trainer_idTousers")
   gym_membership         gym_memberships?      @relation("gym_memberships_user_idTousers")
@@ -34,7 +35,6 @@ model User {
   refresh_tokens         RefreshToken[]
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]
-  gym_classes_instructor gym_classes[]         @relation("gym_classes_instructor")
   goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
@@ -307,9 +307,9 @@ model gyms {
   is_active       Boolean?          @default(true)
   created_at      DateTime?         @default(now()) @db.Timestamp(6)
   updated_at      DateTime?         @default(now()) @db.Timestamp(6)
+  gym_classes     gym_classes[]
   gym_invitations gym_invitations[]
   gym_memberships gym_memberships[]
-  gym_classes     gym_classes[]
 }
 
 model gym_classes {
@@ -361,7 +361,6 @@ enum UserGlobalRole {
 }
 
 enum GymRole {
-  GYM_OWNER
   GYM_ADMIN
   TRAINER
   MEMBER
