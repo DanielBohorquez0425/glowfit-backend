@@ -83,6 +83,59 @@ export const listGymUsers = async (req, res) => {
   }
 };
 
+/**
+ * PATCH /gyms/:gymId/members/:userId/roles
+ *
+ * Agrega y/o quita roles de gym a un miembro.
+ * Protegido: solo GYM_ADMIN del gym puede acceder.
+ *
+ * Body:
+ *   { "add": ["TRAINER"], "remove": ["MEMBER"] }  // ambos opcionales, al menos uno
+ */
+export const updateMemberRoles = async (req, res) => {
+  try {
+    const { gymId, userId } = req.params;
+    const { add, remove } = req.body;
+
+    if (add !== undefined && !Array.isArray(add)) {
+      return res.status(400).json({ error: "'add' debe ser un array de roles" });
+    }
+    if (remove !== undefined && !Array.isArray(remove)) {
+      return res.status(400).json({ error: "'remove' debe ser un array de roles" });
+    }
+    if ((!add || add.length === 0) && (!remove || remove.length === 0)) {
+      return res.status(400).json({
+        error: "Debes especificar al menos un rol en 'add' o 'remove'",
+      });
+    }
+
+    const membership = await gymService.updateMemberRoles(gymId, userId, { add, remove });
+
+    res.json({
+      success: true,
+      data: {
+        membership_id: membership.id,
+        active_role: membership.active_role,
+        gym_roles: membership.gym_roles,
+      },
+    });
+  } catch (error) {
+    if (error.message === "INVALID_ROLE") {
+      return res.status(400).json({
+        error: `Rol inválido. Valores permitidos: ${VALID_GYM_ROLES.join(", ")}`,
+      });
+    }
+    if (error.message === "MEMBERSHIP_NOT_FOUND") {
+      return res.status(404).json({ error: "El usuario no pertenece a este gimnasio." });
+    }
+    if (error.message === "CANNOT_REMOVE_LAST_ROLE") {
+      return res.status(400).json({ error: "No se puede dejar al miembro sin roles." });
+    }
+    console.error("Error al actualizar roles del miembro:", error);
+    res.status(500).json({ error: "Error interno al actualizar los roles del miembro." });
+  }
+};
+
 export const getNewMembersStats = async (req, res) => {
   try {
     const { gymId } = req.params;

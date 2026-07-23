@@ -69,6 +69,13 @@ export const removeGymRole = async (membershipId, role) => {
   });
 };
 
+export const setGymRoles = async (membershipId, roles, activeRole) => {
+  return await prisma.gym_memberships.update({
+    where: { id: membershipId },
+    data: { gym_roles: roles, active_role: activeRole },
+  });
+};
+
 export const setActiveRole = async (membershipId, role) => {
   const membership = await prisma.gym_memberships.findUnique({
     where: { id: membershipId },

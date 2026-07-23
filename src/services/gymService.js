@@ -32,6 +32,40 @@ export const listGymUsers = async (gymId, options = {}) => {
   return await gymMembershipRepository.findUsersByGymId(gymId, options);
 };
 
+const VALID_GYM_ROLES = ["GYM_ADMIN", "TRAINER", "MEMBER"];
+
+/**
+ * Actualiza los roles de gym de un miembro (agrega y/o quita).
+ * La autorización (GYM_ADMIN del gym) se hace en el middleware.
+ *
+ * @param {string} gymId
+ * @param {string} userId - user_id del miembro a modificar
+ * @param {Object} changes
+ * @param {string[]} [changes.add] - Roles a agregar
+ * @param {string[]} [changes.remove] - Roles a quitar
+ * @returns {Object} Membresía actualizada
+ */
+export const updateMemberRoles = async (gymId, userId, { add = [], remove = [] }) => {
+  const invalid = [...add, ...remove].filter((role) => !VALID_GYM_ROLES.includes(role));
+  if (invalid.length > 0) throw new Error("INVALID_ROLE");
+
+  const membership = await gymMembershipRepository.findMembershipByUserId(userId);
+  if (!membership || membership.gym_id !== gymId) throw new Error("MEMBERSHIP_NOT_FOUND");
+
+  const roles = new Set(membership.gym_roles);
+  add.forEach((role) => roles.add(role));
+  remove.forEach((role) => roles.delete(role));
+
+  const finalRoles = [...roles];
+  if (finalRoles.length === 0) throw new Error("CANNOT_REMOVE_LAST_ROLE");
+
+  const activeRole = finalRoles.includes(membership.active_role)
+    ? membership.active_role
+    : finalRoles[0];
+
+  return await gymMembershipRepository.setGymRoles(membership.id, finalRoles, activeRole);
+};
+
 export const getNewMembersStats = async (gymId) => {
   const now = new Date();
   const thisWeek = getISOWeekBounds(now);
