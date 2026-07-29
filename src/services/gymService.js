@@ -1,5 +1,6 @@
 import * as gymRepository from "../repositories/gymRepository.js";
 import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
+import { isMembershipActive, todayInGymTz } from "../utils/planDates.js";
 
 const getISOWeekBounds = (date) => {
   const d = new Date(date);
@@ -29,7 +30,16 @@ export const listAllGyms = async (options = {}) => {
  * @param {string} [options.role]
  */
 export const listGymUsers = async (gymId, options = {}) => {
-  return await gymMembershipRepository.findUsersByGymId(gymId, options);
+  const { users, total } = await gymMembershipRepository.findUsersByGymId(gymId, options);
+
+  // `is_active` se deriva de la vigencia además del status, para que la UI sea
+  // correcta aunque el cron de expiración todavía no haya corrido hoy.
+  const today = todayInGymTz();
+
+  return {
+    users: users.map((user) => ({ ...user, is_active: isMembershipActive(user, today) })),
+    total,
+  };
 };
 
 const VALID_GYM_ROLES = ["GYM_ADMIN", "TRAINER", "MEMBER"];

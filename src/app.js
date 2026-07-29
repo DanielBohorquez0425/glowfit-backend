@@ -9,9 +9,11 @@ import popularRoutineRoutes from "./routes/popularRoutineRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 import gymRoutes from "./routes/gymRoutes.js";
 import gymClassRoutes from "./routes/gymClassRoutes.js";
+import gymPlanRoutes from "./routes/gymPlanRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
 import { startResetCompletedRoutinesJob } from "./jobs/resetCompletedRoutines.js";
+import { startExpireMembershipsJob } from "./jobs/expireMemberships.js";
 
 dotenv.config();
 
@@ -80,7 +82,11 @@ app.use("/gyms", gymRoutes);
 // Rutas de clases de gimnasio
 app.use("/gyms", gymClassRoutes);
 
+// Rutas de planes y caja del gimnasio
+app.use("/gyms", gymPlanRoutes);
+
 // Jobs
 startResetCompletedRoutinesJob();
+startExpireMembershipsJob();
 
 export default app;
