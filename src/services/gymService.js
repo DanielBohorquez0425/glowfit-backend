@@ -36,6 +36,7 @@ const VALID_GYM_ROLES = ["GYM_ADMIN", "TRAINER", "MEMBER"];
 
 /**
  * Actualiza los roles de gym de un miembro (agrega y/o quita).
+ * Si se agregan roles, el último rol agregado queda como active_role.
  * La autorización (GYM_ADMIN del gym) se hace en el middleware.
  *
  * @param {string} gymId
@@ -59,9 +60,12 @@ export const updateMemberRoles = async (gymId, userId, { add = [], remove = [] }
   const finalRoles = [...roles];
   if (finalRoles.length === 0) throw new Error("CANNOT_REMOVE_LAST_ROLE");
 
-  const activeRole = finalRoles.includes(membership.active_role)
-    ? membership.active_role
-    : finalRoles[0];
+  // Al agregar roles, el último rol agregado pasa a ser el activo.
+  const lastAddedRole = [...add].reverse().find((role) => roles.has(role));
+
+  const activeRole =
+    lastAddedRole ??
+    (finalRoles.includes(membership.active_role) ? membership.active_role : finalRoles[0]);
 
   return await gymMembershipRepository.setGymRoles(membership.id, finalRoles, activeRole);
 };
