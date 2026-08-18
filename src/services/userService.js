@@ -145,7 +145,31 @@ export const switchActiveRole = async (userId, role) => {
   return mapGymMembership(updated);
 };
 
-export const assignTrainer = async (memberUserId, trainerId) => {
+/**
+ * Autoriza la gestión de la asignación de entrenador de un miembro.
+ * Pasa si el actor es ADMIN/SUPERADMIN global, o GYM_ADMIN del mismo gym
+ * que el miembro (el caso del dashboard web).
+ *
+ * @throws {Error} FORBIDDEN
+ */
+const assertCanManageTrainerAssignment = async (actorId, memberMembership) => {
+  const globalRole = await userRepository.findRoleById(actorId);
+  if (globalRole === "ADMIN" || globalRole === "SUPERADMIN") return;
+
+  const actorMembership = await gymMembershipRepository.findMembershipByUserId(actorId);
+
+  if (
+    actorMembership &&
+    actorMembership.gym_id === memberMembership.gym_id &&
+    actorMembership.active_role === "GYM_ADMIN"
+  ) {
+    return;
+  }
+
+  throw new Error("FORBIDDEN");
+};
+
+export const assignTrainer = async (actorId, memberUserId, trainerId) => {
   if (memberUserId === trainerId) {
     throw new Error("CANNOT_ASSIGN_SELF");
   }
@@ -155,6 +179,8 @@ export const assignTrainer = async (memberUserId, trainerId) => {
   if (!memberMembership) {
     throw new Error("MEMBER_NO_MEMBERSHIP");
   }
+
+  await assertCanManageTrainerAssignment(actorId, memberMembership);
 
   const trainerMembership = await gymMembershipRepository.findMembershipByUserId(trainerId);
 
@@ -175,12 +201,14 @@ export const assignTrainer = async (memberUserId, trainerId) => {
   return mapGymMembership(updated);
 };
 
-export const unassignTrainer = async (memberUserId) => {
+export const unassignTrainer = async (actorId, memberUserId) => {
   const memberMembership = await gymMembershipRepository.findMembershipByUserId(memberUserId);
 
   if (!memberMembership) {
     throw new Error("MEMBER_NO_MEMBERSHIP");
   }
+
+  await assertCanManageTrainerAssignment(actorId, memberMembership);
 
   const updated = await gymMembershipRepository.assignTrainer(memberMembership.id, null);
 

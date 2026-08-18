@@ -2,14 +2,18 @@ import * as routineService from "../services/routineService.js";
 import * as aiService from "../services/aiService.js";
 import * as userService from "../services/userService.js";
 import * as exerciseService from "../services/exerciseService.js";
+import * as accessService from "../services/accessService.js";
 
 export const createRoutine = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // `user_id` en el body permite que un entrenador cree la rutina para uno de
+    // sus miembros asignados. Sin él, la rutina es para el usuario autenticado.
+    const targetUserId = req.body.user_id || req.user.userId;
+    await accessService.assertCanAccessUserData(req.user.userId, targetUserId);
 
     const routineData = {
       ...req.body,
-      user_id: userId,
+      user_id: targetUserId,
     };
 
     const routines = await routineService.createRoutine(routineData);
@@ -19,6 +23,11 @@ export const createRoutine = async (req, res) => {
       count: routines.length,
     });
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({
+        error: "No tienes permisos para crear rutinas para este usuario",
+      });
+    }
     if (error.message === "INVALID_SET") {
       return res.status(400).json({
         error: "Serie inválida: revisa reps, peso y tiempo de descanso",
@@ -46,9 +55,16 @@ export const getRoutineById = async (req, res) => {
 export const getRoutinesByUser = async (req, res) => {
   try {
     const { userId } = req.params;
+    await accessService.assertCanAccessUserData(req.user.userId, userId);
+
     const routines = await routineService.getRoutinesByUserId(userId);
     res.json(routines);
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({
+        error: "No tienes permisos para ver las rutinas de este usuario",
+      });
+    }
     res
       .status(500)
       .json({ error: error.message || "Error al obtener las rutinas" });
@@ -57,7 +73,10 @@ export const getRoutinesByUser = async (req, res) => {
 
 export const generateAIRoutine = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    // Mismo criterio que createRoutine: con `user_id` la rutina se genera para
+    // ese usuario, usando SU perfil como entrada de la IA.
+    const userId = req.body.user_id || req.user.userId;
+    await accessService.assertCanAccessUserData(req.user.userId, userId);
 
     const userProfile = await userService.getUserById(userId);
     if (!userProfile) {
@@ -100,6 +119,11 @@ export const generateAIRoutine = async (req, res) => {
       count: savedRoutines.length,
     });
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({
+        error: "No tienes permisos para crear rutinas para este usuario",
+      });
+    }
     console.error("Error al generar rutina con IA:", error);
     res
       .status(500)

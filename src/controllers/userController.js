@@ -1,4 +1,5 @@
 import * as userService from "../services/userService.js";
+import * as accessService from "../services/accessService.js";
 
 // Registro de usuario
 export const register = async (req, res) => {
@@ -90,12 +91,17 @@ export const getProfile = async (req, res) => {
 // Obtener usuario por ID
 export const getUserById = async (req, res) => {
   try {
+    await accessService.assertCanAccessUserData(req.user.userId, req.params.id);
+
     const user = await userService.getUserById(req.params.id);
     if (!user) {
       return res.status(404).json({ error: "Usuario no encontrado" });
     }
     res.json(user);
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "No tienes permisos para ver este usuario" });
+    }
     console.error("Error al obtener usuario:", error);
     res.status(500).json({ error: "Error al obtener usuario" });
   }
@@ -332,13 +338,20 @@ export const assignTrainer = async (req, res) => {
       return res.status(400).json({ error: "El trainerId es obligatorio" });
     }
 
-    const updatedMembership = await userService.assignTrainer(userId, trainerId);
+    const updatedMembership = await userService.assignTrainer(
+      req.user.userId,
+      userId,
+      trainerId
+    );
 
     res.json({
       message: "Entrenador asignado correctamente",
       data: updatedMembership,
     });
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "No tienes permisos para asignar entrenadores" });
+    }
     if (error.message === "CANNOT_ASSIGN_SELF") {
       return res.status(400).json({ error: "Un usuario no puede ser su propio entrenador" });
     }
@@ -366,13 +379,16 @@ export const unassignTrainer = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const updatedMembership = await userService.unassignTrainer(userId);
+    const updatedMembership = await userService.unassignTrainer(req.user.userId, userId);
 
     res.json({
       message: "Entrenador desasignado correctamente",
       data: updatedMembership,
     });
   } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "No tienes permisos para desasignar entrenadores" });
+    }
     if (error.message === "MEMBER_NO_MEMBERSHIP") {
       return res.status(404).json({ error: "El usuario no tiene membresía en ningún gym" });
     }

@@ -102,15 +102,23 @@ export const setActiveRole = async (membershipId, role) => {
  * @param {number} options.limit - Cantidad por página
  * @param {number} options.offset - Offset para paginación
  * @param {string} [options.role] - Filtrar por GymRole (ej: 'TRAINER', 'MEMBER')
+ * @param {string} [options.trainerId] - Filtrar por entrenador asignado
  * @returns {{ users: Array, total: number }}
  */
 export const findUsersByGymId = async (gymId, options = {}) => {
-  const { limit = 20, offset = 0, role } = options;
+  const { limit = 20, offset = 0, role, trainerId } = options;
 
   const where = { gym_id: gymId };
 
+  // Se filtra por `gym_roles` y no por `active_role`: el rol activo es el
+  // sombrero que el usuario tiene puesto en la app, no la capacidad que tiene.
+  // Un entrenador que hoy entrena como miembro sigue siendo entrenador.
   if (role) {
-    where.active_role = role;
+    where.gym_roles = { has: role };
+  }
+
+  if (trainerId) {
+    where.trainer_id = trainerId;
   }
 
   const [memberships, total] = await Promise.all([
@@ -126,6 +134,7 @@ export const findUsersByGymId = async (gymId, options = {}) => {
         start_date: true,
         end_date: true,
         created_at: true,
+        trainer_id: true,
         users_gym_memberships_user_idTousers: {
           select: {
             id: true,
@@ -159,6 +168,7 @@ export const findUsersByGymId = async (gymId, options = {}) => {
     start_date: m.start_date,
     end_date: m.end_date,
     member_since: m.created_at,
+    trainer_id: m.trainer_id,
     ...m.users_gym_memberships_user_idTousers,
   }));
 

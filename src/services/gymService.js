@@ -42,6 +42,30 @@ export const listGymUsers = async (gymId, options = {}) => {
   };
 };
 
+/**
+ * Lista los miembros de un gym asignados a un entrenador.
+ * La autorización (TRAINER activo en el gym) se hace en el middleware.
+ *
+ * @param {string} gymId
+ * @param {string} trainerId - user_id del entrenador
+ * @param {Object} options
+ * @param {number} options.limit
+ * @param {number} options.offset
+ */
+export const listTrainerMembers = async (gymId, trainerId, options = {}) => {
+  const { users, total } = await gymMembershipRepository.findUsersByGymId(gymId, {
+    ...options,
+    trainerId,
+  });
+
+  const today = todayInGymTz();
+
+  return {
+    users: users.map((user) => ({ ...user, is_active: isMembershipActive(user, today) })),
+    total,
+  };
+};
+
 const VALID_GYM_ROLES = ["GYM_ADMIN", "TRAINER", "MEMBER"];
 
 /**

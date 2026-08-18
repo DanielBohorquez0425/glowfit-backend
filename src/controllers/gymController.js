@@ -84,6 +84,49 @@ export const listGymUsers = async (req, res) => {
 };
 
 /**
+ * GET /gyms/:gymId/trainer/members
+ *
+ * Lista los miembros del gym asignados al entrenador autenticado.
+ * Protegido: solo TRAINER (rol activo) del gym puede acceder.
+ *
+ * Query params:
+ *   - page (default: 1)
+ *   - limit (default: 20, max: 100)
+ */
+export const listTrainerMembers = async (req, res) => {
+  try {
+    const { gymId } = req.params;
+    const trainerId = req.user.userId;
+
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const { users, total } = await gymService.listTrainerMembers(gymId, trainerId, {
+      limit,
+      offset,
+    });
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error al obtener los miembros asignados:", error);
+    res.status(500).json({ error: "Error interno al obtener los miembros asignados." });
+  }
+};
+
+/**
  * PATCH /gyms/:gymId/members/:userId/roles
  *
  * Agrega y/o quita roles de gym a un miembro.
