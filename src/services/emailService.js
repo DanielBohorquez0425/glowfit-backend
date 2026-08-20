@@ -8,7 +8,7 @@ const getResend = () => {
 
 export const sendPasswordResetCode = async (email, code) => {
   await getResend().emails.send({
-    from: "GlowFit <onboarding@resend.dev>",
+    from: `GlowFit <onboarding@${process.env.EMAIL_DOMAIN}>`,
     to: email,
     subject: "Tu código de verificación - GlowFit",
     html: `
@@ -29,7 +29,7 @@ export const sendPasswordSetupEmail = async (email, token) => {
   const setupLink = `${frontendUrl}/setup-password?token=${token}`;
 
   await getResend().emails.send({
-    from: "GlowFit <onboarding@resend.dev>",
+    from: `GlowFit <onboarding@${process.env.EMAIL_DOMAIN}>`,
     to: email,
     subject: "Establece tu contraseña - GlowFit",
     html: `
