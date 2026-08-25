@@ -30,13 +30,13 @@ model User {
   assigned_memberships   gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
   trained_memberships    gym_memberships[]     @relation("gym_memberships_trainer_idTousers")
   gym_membership         gym_memberships?      @relation("gym_memberships_user_idTousers")
+  registered_payments    gym_plan_payments[]   @relation("gym_plan_payments_registered_byTousers")
+  plan_payments          gym_plan_payments[]   @relation("gym_plan_payments_user_idTousers")
   password_reset_codes   PasswordResetCode[]
   password_setup_tokens  PasswordSetupToken[]
   refresh_tokens         RefreshToken[]
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]
-  plan_payments          gym_plan_payments[]   @relation("gym_plan_payments_user_idTousers")
-  registered_payments    gym_plan_payments[]   @relation("gym_plan_payments_registered_byTousers")
   goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
@@ -291,9 +291,9 @@ model gym_memberships {
   plan_id                                  String?             @db.Uuid
   users_gym_memberships_assigned_byTousers User?               @relation("gym_memberships_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
   gyms                                     gyms                @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  gym_plans                                gym_plans?          @relation(fields: [plan_id], references: [id], onUpdate: NoAction)
   users_gym_memberships_trainer_idTousers  User?               @relation("gym_memberships_trainer_idTousers", fields: [trainer_id], references: [id], onUpdate: NoAction)
   users_gym_memberships_user_idTousers     User                @relation("gym_memberships_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  gym_plans                                gym_plans?          @relation(fields: [plan_id], references: [id], onUpdate: NoAction)
   gym_plan_payments                        gym_plan_payments[]
 
   @@index([gym_id, end_date], map: "idx_gym_memberships_gym_end_date")
@@ -317,8 +317,8 @@ model gyms {
   gym_classes       gym_classes[]
   gym_invitations   gym_invitations[]
   gym_memberships   gym_memberships[]
-  gym_plans         gym_plans[]
   gym_plan_payments gym_plan_payments[]
+  gym_plans         gym_plans[]
 }
 
 model gym_plans {
@@ -334,9 +334,9 @@ model gym_plans {
   is_active      Boolean             @default(true)
   created_at     DateTime            @default(now()) @db.Timestamp(6)
   updated_at     DateTime            @updatedAt @db.Timestamp(6)
-  gyms           gyms                @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   memberships    gym_memberships[]
   payments       gym_plan_payments[]
+  gyms           gyms                @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([gym_id, name], map: "unique_plan_name_per_gym")
   @@index([gym_id, is_active], map: "idx_gym_plans_gym_active")
@@ -364,9 +364,9 @@ model gym_plan_payments {
   created_at     DateTime        @default(now()) @db.Timestamp(6)
   gyms           gyms            @relation(fields: [gym_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   memberships    gym_memberships @relation(fields: [membership_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  gym_plans      gym_plans?      @relation(fields: [plan_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  users          User            @relation("gym_plan_payments_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  gym_plans      gym_plans?      @relation(fields: [plan_id], references: [id], onUpdate: NoAction)
   registrant     User?           @relation("gym_plan_payments_registered_byTousers", fields: [registered_by], references: [id], onUpdate: NoAction)
+  users          User            @relation("gym_plan_payments_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([gym_id, paid_at], map: "idx_gym_plan_payments_gym_paid_at")
   @@index([user_id], map: "idx_gym_plan_payments_user")

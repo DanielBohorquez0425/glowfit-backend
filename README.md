@@ -203,6 +203,7 @@ set. `set_number` is optional (auto-assigned by position when omitted).
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/invitations/user` | Required | Get invitations for user email |
+| GET | `/invitations/gym/:gymId` | GYM_ADMIN | Invitation history of a gym. Query: `status` (`PENDING`\|`ACCEPTED`\|`REJECTED`), `limit`. Returns `{ summary, invitations }`, each invitation flagged with `is_registered` |
 | POST | `/invitations/send` | Required | Send gym invitation |
 | PATCH | `/invitations/:id/accepted` | Required | Accept invitation |
 

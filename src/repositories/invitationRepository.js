@@ -31,3 +31,19 @@ export const getInvitationByUserEmail = async (email) => {
     include: { gyms: true },
   });
 };
+
+export const findInvitationsByGymId = async (gym_id, { status, limit } = {}) => {
+  return await prisma.gym_invitations.findMany({
+    where: { gym_id, ...(status ? { status } : {}) },
+    orderBy: { created_at: "desc" },
+    ...(limit ? { take: limit } : {}),
+  });
+};
+
+export const countInvitationsByStatus = async (gym_id) => {
+  return await prisma.gym_invitations.groupBy({
+    by: ["status"],
+    where: { gym_id },
+    _count: { _all: true },
+  });
+};

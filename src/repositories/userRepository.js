@@ -527,3 +527,16 @@ const getWeekStart = (week, year) => {
 
   return weekStart;
 };
+
+export const findManyByEmails = async (emails) => {
+  return await prisma.user.findMany({
+    where: { email: { in: emails } },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      last_name: true,
+      created_at: true,
+    },
+  });
+};

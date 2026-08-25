@@ -88,3 +88,40 @@ export const getInvitationsByUserEmail = async (req, res) => {
 };
 
 
+export const listGymInvitations = async (req, res) => {
+  try {
+    const { gymId } = req.params;
+    const { status, limit } = req.query;
+
+    const parsedLimit = limit === undefined ? undefined : Number(limit);
+    if (parsedLimit !== undefined && (!Number.isInteger(parsedLimit) || parsedLimit < 1)) {
+      return res.status(400).json({
+        message: "limit debe ser un entero positivo",
+        success: false,
+      });
+    }
+
+    const result = await invitationService.getGymInvitations(gymId, {
+      status: status ? String(status).toUpperCase() : undefined,
+      limit: parsedLimit,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    if (error.message === "INVALID_STATUS") {
+      return res.status(400).json({
+        message: "status inválido. Valores permitidos: PENDING, ACCEPTED, REJECTED",
+        success: false,
+      });
+    }
+    console.error("listGymInvitations failed:", error);
+    res.status(500).json({
+      message: "Error obteniendo el historial de invitaciones",
+      success: false,
+      error: error.message,
+    });
+  }
+};
