@@ -18,6 +18,7 @@ import {
   createGymAdmin,
   assignTrainer,
   unassignTrainer,
+  deleteUser,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
@@ -47,5 +48,6 @@ router.patch("/:userId/active-routine", authenticateToken, setActiveRoutine);
 // también al GYM_ADMIN del mismo gym que el miembro (dashboard web).
 router.patch("/:userId/trainer", authenticateToken, assignTrainer);
 router.delete("/:userId/trainer", authenticateToken, unassignTrainer);
+router.delete("/:userId", authenticateToken, deleteUser);
 
 export default router;

@@ -400,6 +400,31 @@ export const unassignTrainer = async (req, res) => {
   }
 };
 
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const result = await userService.deleteUser(req.user.userId, userId);
+
+    res.json({
+      message: "Usuario eliminado correctamente",
+      data: result,
+    });
+  } catch (error) {
+    if (error.message === "FORBIDDEN") {
+      return res.status(403).json({ error: "No tienes permisos para eliminar este usuario" });
+    }
+    if (error.message === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    if (error.code === "P2025") {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    console.error("Error al eliminar usuario:", error);
+    res.status(500).json({ error: "Error al eliminar usuario" });
+  }
+};
+
 export const getUserActivity = async (req, res) => {
   try {
     const { id } = req.params;

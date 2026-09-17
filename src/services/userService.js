@@ -31,7 +31,8 @@ export const register = async (userData) => {
     bmi,
   } = userData;
 
-  const existingUser = await userRepository.findByEmail(email);
+  // Incluye eliminados: el email de una cuenta eliminada queda ocupado.
+  const existingUser = await userRepository.findByEmailIncludingDeleted(email);
   if (existingUser) {
     throw new Error("El usuario ya existe.");
   }
@@ -213,6 +214,42 @@ export const unassignTrainer = async (actorId, memberUserId) => {
   const updated = await gymMembershipRepository.assignTrainer(memberMembership.id, null);
 
   return mapGymMembership(updated);
+};
+
+/**
+ * Elimina (soft delete) un usuario. Autoriza en este orden:
+ * 1. El actor se elimina a sí mismo.
+ * 2. El actor tiene rol global ADMIN/SUPERADMIN.
+ * 3. El actor es GYM_ADMIN del mismo gym que el usuario objetivo.
+ *
+ * @throws {Error} USER_NOT_FOUND | FORBIDDEN
+ */
+export const deleteUser = async (actorId, targetUserId) => {
+  const targetUser = await userRepository.findById(targetUserId);
+  if (!targetUser) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  if (actorId !== targetUserId) {
+    const globalRole = await userRepository.findRoleById(actorId);
+
+    if (globalRole !== "ADMIN" && globalRole !== "SUPERADMIN") {
+      const targetMembership = await gymMembershipRepository.findMembershipByUserId(targetUserId);
+      const actorMembership = await gymMembershipRepository.findMembershipByUserId(actorId);
+
+      const isGymAdminOfSameGym =
+        targetMembership &&
+        actorMembership &&
+        actorMembership.gym_id === targetMembership.gym_id &&
+        actorMembership.active_role === "GYM_ADMIN";
+
+      if (!isGymAdminOfSameGym) {
+        throw new Error("FORBIDDEN");
+      }
+    }
+  }
+
+  return await userRepository.softDelete(targetUserId);
 };
 
 export const updateUser = async (userId, data) => {

@@ -26,6 +26,7 @@ model User {
   level                  userLevel             @default(beginner)
   token_version          Int                   @default(0)
   role                   UserGlobalRole        @default(USER)
+  deleted_at             DateTime?             @map("deleted_at")
   gym_classes_instructor gym_classes[]         @relation("gym_classes_instructor")
   assigned_memberships   gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
   trained_memberships    gym_memberships[]     @relation("gym_memberships_trainer_idTousers")
@@ -40,6 +41,7 @@ model User {
   goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
+  @@index([deleted_at], map: "idx_users_deleted_at")
   @@map("users")
 }
 

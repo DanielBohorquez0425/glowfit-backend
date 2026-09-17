@@ -9,31 +9,51 @@ export const incrementTokenVersion = async (userId) => {
   return user.token_version;
 };
 
-export const findTokenVersionById = async (id) => {
-  const user = await prisma.user.findUnique({
+export const softDelete = async (id) => {
+  return await prisma.user.update({
     where: { id },
+    data: { deleted_at: new Date(), token_version: { increment: 1 } },
+    select: { id: true, email: true, deleted_at: true },
+  });
+};
+
+export const findTokenVersionById = async (id) => {
+  const user = await prisma.user.findFirst({
+    where: { id, deleted_at: null },
     select: { token_version: true },
   });
   return user?.token_version;
 };
 
 export const findRoleById = async (id) => {
-  const user = await prisma.user.findUnique({
-    where: { id },
+  const user = await prisma.user.findFirst({
+    where: { id, deleted_at: null },
     select: { role: true },
   });
   return user?.role;
 };
 
 export const findByEmail = async (email) => {
+  return await prisma.user.findFirst({
+    where: { email, deleted_at: null },
+  });
+};
+
+/**
+ * Busca por email incluyendo usuarios eliminados. El email de una cuenta
+ * eliminada sigue ocupado, así que el chequeo de duplicados al registrar
+ * debe ver también esos registros.
+ */
+export const findByEmailIncludingDeleted = async (email) => {
   return await prisma.user.findUnique({
     where: { email },
+    select: { id: true, deleted_at: true },
   });
 };
 
 export const findByEmailWithMembership = async (email) => {
-  return await prisma.user.findUnique({
-    where: { email },
+  return await prisma.user.findFirst({
+    where: { email, deleted_at: null },
     select: {
       id: true,
       email: true,
@@ -81,8 +101,8 @@ export const create = async (data) => {
 };
 
 export const findById = async (id) => {
-  return await prisma.user.findUnique({
-    where: { id },
+  return await prisma.user.findFirst({
+    where: { id, deleted_at: null },
     select: {
       id: true,
       email: true,
@@ -129,6 +149,7 @@ export const findById = async (id) => {
 
 export const findAll = async () => {
   return await prisma.user.findMany({
+    where: { deleted_at: null },
     select: {
       id: true,
       email: true,
@@ -530,7 +551,7 @@ const getWeekStart = (week, year) => {
 
 export const findManyByEmails = async (emails) => {
   return await prisma.user.findMany({
-    where: { email: { in: emails } },
+    where: { email: { in: emails }, deleted_at: null },
     select: {
       id: true,
       email: true,
