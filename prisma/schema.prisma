@@ -38,7 +38,10 @@ model User {
   refresh_tokens         RefreshToken[]
   routine_completions    routine_completions[]
   user_training_days     user_training_days[]
-  goals                  goals?                @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
+  nutrition_targets      user_nutrition_targets?
+  daily_nutrition_logs   daily_nutrition_logs[]
+  meal_entries           meal_entries[]
+  goals                  goals?              @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
   @@index([deleted_at], map: "idx_users_deleted_at")
@@ -440,4 +443,79 @@ enum payment_method {
   CARD
   TRANSFER
   OTHER
+}
+
+/// DailyFit: current calculated macro targets for a user (1:1).
+model user_nutrition_targets {
+  user_id         String   @id @db.Uuid
+  calories        Int
+  protein_g       Decimal  @db.Decimal(7, 2)
+  fat_g           Decimal  @db.Decimal(7, 2)
+  carbs_g         Decimal  @db.Decimal(7, 2)
+  bmr             Decimal  @db.Decimal(7, 2)
+  tdee            Decimal  @db.Decimal(7, 2)
+  activity_factor Decimal  @db.Decimal(4, 3)
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+  updated_at      DateTime @updatedAt @db.Timestamp(6)
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_nutrition_targets")
+}
+
+/// DailyFit: one row per user per day. Targets are snapshotted at creation so
+/// changing the user's profile never recolors past calendar days.
+model daily_nutrition_logs {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String            @db.Uuid
+  log_date           DateTime          @db.Date
+  target_calories    Int
+  target_protein_g   Decimal           @db.Decimal(7, 2)
+  target_fat_g       Decimal           @db.Decimal(7, 2)
+  target_carbs_g     Decimal           @db.Decimal(7, 2)
+  consumed_calories  Int               @default(0)
+  consumed_protein_g Decimal           @default(0) @db.Decimal(7, 2)
+  consumed_fat_g     Decimal           @default(0) @db.Decimal(7, 2)
+  consumed_carbs_g   Decimal           @default(0) @db.Decimal(7, 2)
+  status             daily_goal_status @default(NONE)
+  created_at         DateTime          @default(now()) @db.Timestamp(6)
+  updated_at         DateTime          @updatedAt @db.Timestamp(6)
+  user               User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  meal_entries       meal_entries[]
+
+  @@unique([user_id, log_date])
+  @@map("daily_nutrition_logs")
+}
+
+/// DailyFit: meals manually registered by the user.
+model meal_entries {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  daily_log_id         String               @db.Uuid
+  user_id              String               @db.Uuid
+  meal_type            meal_type
+  title                String               @db.VarChar(255)
+  calories             Int
+  protein_g            Decimal              @db.Decimal(7, 2)
+  fat_g                Decimal              @db.Decimal(7, 2)
+  carbs_g              Decimal              @db.Decimal(7, 2)
+  created_at           DateTime             @default(now()) @db.Timestamp(6)
+  updated_at           DateTime             @updatedAt @db.Timestamp(6)
+  daily_nutrition_logs daily_nutrition_logs @relation(fields: [daily_log_id], references: [id], onDelete: Cascade)
+  user                 User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([daily_log_id], map: "idx_meal_entries_daily_log_id")
+  @@index([user_id], map: "idx_meal_entries_user_id")
+  @@map("meal_entries")
+}
+
+enum daily_goal_status {
+  NONE
+  PARTIAL
+  COMPLETED
+}
+
+enum meal_type {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
 }

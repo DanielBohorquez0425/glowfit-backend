@@ -1,5 +1,6 @@
 import * as userRepository from "../repositories/userRepository.js";
 import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
+import * as dailyfitService from "./dailyfitService.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -268,7 +269,23 @@ export const updateUser = async (userId, data) => {
     data.bmi = bmi;
   }
 
-  return await userRepository.update(userId, data);
+  const updatedUser = await userRepository.update(userId, data);
+
+  // Refresh DailyFit nutrition targets when a field they depend on changed.
+  // goal_id arrives here as `goals: { connect: { id } }` (see userController).
+  const touchesNutritionInputs =
+    data.weight !== undefined ||
+    data.height !== undefined ||
+    data.date_of_birth !== undefined ||
+    data.gender !== undefined ||
+    data.goals !== undefined ||
+    data.user_training_days !== undefined;
+
+  if (touchesNutritionInputs) {
+    await dailyfitService.recalculateTargetsIfExists(userId);
+  }
+
+  return updatedUser;
 };
 
 export const getUserActivity = async (userId, options) => {

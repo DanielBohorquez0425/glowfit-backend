@@ -10,6 +10,7 @@ import invitationRoutes from "./routes/invitationRoutes.js";
 import gymRoutes from "./routes/gymRoutes.js";
 import gymClassRoutes from "./routes/gymClassRoutes.js";
 import gymPlanRoutes from "./routes/gymPlanRoutes.js";
+import dailyfitRoutes from "./routes/dailyfitRoutes.js";
 import dotenv from "dotenv";
 import { generalLimiter } from "./middlewares/rateLimitMiddleware.js";
 import { startResetCompletedRoutinesJob } from "./jobs/resetCompletedRoutines.js";
@@ -84,6 +85,9 @@ app.use("/gyms", gymClassRoutes);
 
 // Rutas de planes y caja del gimnasio
 app.use("/gyms", gymPlanRoutes);
+
+// Rutas del contador de calorías DailyFit
+app.use("/dailyfit", dailyfitRoutes);
 
 // Jobs
 startResetCompletedRoutinesJob();
