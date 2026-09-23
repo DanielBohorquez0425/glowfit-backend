@@ -101,6 +101,8 @@ Request → Route → Controller (validate) → Service (business logic) → Rep
 | `invitation_status` | `PENDING`, `ACCEPTED`, `REJECTED` |
 | `UserGlobalRole` | `USER`, `ADMIN`, `SUPERADMIN`, `MEMBER` |
 | `GymRole` | `GYM_ADMIN`, `TRAINER`, `MEMBER` |
+| `daily_goal_status` | `NONE`, `PARTIAL`, `COMPLETED` |
+| `meal_type` | `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK` |
 
 ## API Endpoints
 
@@ -206,6 +208,67 @@ set. `set_number` is optional (auto-assigned by position when omitted).
 | GET | `/invitations/gym/:gymId` | GYM_ADMIN | Invitation history of a gym. Query: `status` (`PENDING`\|`ACCEPTED`\|`REJECTED`), `limit`. Returns `{ summary, invitations }`, each invitation flagged with `is_registered` |
 | POST | `/invitations/send` | Required | Send gym invitation |
 | PATCH | `/invitations/:id/accepted` | Required | Accept invitation |
+
+### DailyFit — Calorie Counter (`/dailyfit`)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/dailyfit/targets` | Required | Get stored nutrition targets (computed and stored from the profile on first request) |
+| POST | `/dailyfit/targets/recalculate` | Required | Recompute and store nutrition targets from the current profile |
+| GET | `/dailyfit/calendar` | Required | List day statuses in a range. Query: `from`, `to` (`YYYY-MM-DD`, max ~62 days). Days with no log are omitted |
+| GET | `/dailyfit/days/:date` | Required | Get a day's consumed vs. target macros, plus meals grouped by `meal_type` |
+| POST | `/dailyfit/meals` | Required | Log a meal entry |
+| PATCH | `/dailyfit/meals/:id` | Required | Update a meal entry |
+| DELETE | `/dailyfit/meals/:id` | Required | Delete a meal entry |
+
+**`POST /dailyfit/meals` request body**
+
+```json
+{
+  "date": "2026-09-23",
+  "title": "Grilled chicken salad",
+  "meal_type": "LUNCH",
+  "calories": 450,
+  "protein_g": 40,
+  "fat_g": 15,
+  "carbs_g": 30
+}
+```
+
+- `meal_type` is one of `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`.
+- The first meal logged for a date creates that day's log, snapshotting the
+  user's current targets — a later target recalculation never rewrites a past
+  day's snapshot.
+
+**`GET /dailyfit/days/:date` response shape**
+
+```json
+{
+  "success": true,
+  "data": {
+    "date": "2026-09-23",
+    "status": "PARTIAL",
+    "macros": {
+      "calories": { "consumed": 1800, "target": 2200, "state": "UNDER" },
+      "protein_g": { "consumed": 120, "target": 150, "state": "UNDER" },
+      "fat_g": { "consumed": 60, "target": 70, "state": "MET" },
+      "carbs_g": { "consumed": 180, "target": 220, "state": "UNDER" }
+    },
+    "meals": [
+      {
+        "meal_type": "BREAKFAST",
+        "totals": { "calories": 450, "protein_g": 30, "fat_g": 15, "carbs_g": 45 },
+        "items": [{ "id": "...", "title": "Oatmeal", "meal_type": "BREAKFAST", "calories": 450, "protein_g": 30, "fat_g": 15, "carbs_g": 45 }]
+      }
+    ]
+  }
+}
+```
+
+- `meals` only includes meal-type groups with at least one entry, ordered
+  `BREAKFAST`, `LUNCH`, `DINNER`, `SNACK`.
+- Macro `state` is one of `UNDER`, `MET`, `OVER`, `WAY_OVER`; day `status` is
+  `NONE`, `PARTIAL`, or `COMPLETED` based on how many of the four macros are `MET`.
 
 ## Authentication
 
