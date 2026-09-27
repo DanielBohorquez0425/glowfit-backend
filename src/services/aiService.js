@@ -27,6 +27,31 @@ const createChatCompletion = async ({ model, messages, temperature, max_tokens }
   return data.choices?.[0]?.message?.content;
 };
 
+const TEXT_MODEL_FALLBACK_CHAIN = [
+  "openai/gpt-6-luna",
+  "meta/muse-spark-1.3-contributor",
+  "meta/muse-spark-1.2-contributor",
+];
+
+/**
+ * Llama a createChatCompletion probando cada modelo de TEXT_MODEL_FALLBACK_CHAIN
+ * en orden, hasta que uno responda correctamente.
+ */
+const createChatCompletionWithFallback = async ({ messages, temperature, max_tokens }) => {
+  let lastError;
+
+  for (const model of TEXT_MODEL_FALLBACK_CHAIN) {
+    try {
+      return await createChatCompletion({ model, messages, temperature, max_tokens });
+    } catch (error) {
+      console.error(`Modelo ${model} falló, probando siguiente:`, error.message);
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+};
+
 /**
  * Calcula la edad a partir de la fecha de nacimiento
  */
@@ -253,14 +278,13 @@ Estructura exacta:
 `;
 
   try {
-    const responseText = await createChatCompletion({
+    const responseText = await createChatCompletionWithFallback({
       messages: [
         {
           role: "user",
           content: prompt,
         },
       ],
-      model: "openai/gpt-oss-120b",
       temperature: 0.2,
       max_tokens: 800,
     });
