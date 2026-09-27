@@ -39,10 +39,10 @@ export const createRoutine = async (data) => {
   validateExercises(data.exercises);
 
   // Cada día se materializa como una rutina independiente, por lo que el
-  // límite de 15 debe contemplar todas las rutinas que se van a crear.
+  // límite de 30 debe contemplar todas las rutinas que se van a crear.
   const routineCount = await routineRepository.countUserRoutines(data.user_id);
-  if (routineCount + days.length > 15) {
-    throw new Error("Has alcanzado el límite máximo de 15 rutinas");
+  if (routineCount + days.length > 30) {
+    throw new Error("Has alcanzado el límite máximo de 30 rutinas");
   }
 
   // Crear una rutina independiente por cada día seleccionado. Esto mantiene la
