@@ -54,6 +54,11 @@ const handleDailyfitError = (error, res, fallbackMessage) => {
     return true;
   }
 
+  if (error.message === "AI_ESTIMATION_FAILED") {
+    res.status(502).json({ error: "Could not estimate macros for that meal. Try rephrasing it." });
+    return true;
+  }
+
   if (error.message === "USER_NOT_FOUND" || error.code === "P2025") {
     res.status(404).json({ error: "Record not found." });
     return true;
@@ -102,6 +107,16 @@ export const getCalendar = async (req, res) => {
     res.json({ success: true, data: calendar });
   } catch (error) {
     handleDailyfitError(error, res, "Internal error while fetching the calendar.");
+  }
+};
+
+/** POST /dailyfit/meals/estimate */
+export const estimateMeal = async (req, res) => {
+  try {
+    const macros = await dailyfitService.estimateMealMacros(req.body.description);
+    res.json({ success: true, data: macros });
+  } catch (error) {
+    handleDailyfitError(error, res, "Internal error while estimating meal macros.");
   }
 };
 

@@ -1,4 +1,5 @@
 import * as dailyfitRepository from "../repositories/dailyfitRepository.js";
+import * as aiService from "./aiService.js";
 import prisma from "../config/prismaClient.js";
 import {
   calculateTargets,
@@ -171,6 +172,25 @@ export const getCalendar = async (userId, fromStr, toStr) => {
     date: formatLogDate(log.log_date),
     status: log.status,
   }));
+};
+
+// ── AI macro estimation ───────────────────────────────────────────────────────
+
+/**
+ * Estimates macros for a free-text meal description via AI, without persisting
+ * anything. The caller reviews/edits the preview, then saves it through the
+ * regular createMeal flow.
+ */
+export const estimateMealMacros = async (description) => {
+  if (typeof description !== "string" || !description.trim()) {
+    throw new Error("INVALID_INPUT");
+  }
+
+  try {
+    return await aiService.estimateMealMacrosWithAI(description.trim());
+  } catch (error) {
+    throw new Error("AI_ESTIMATION_FAILED");
+  }
 };
 
 // ── Meal mutations ────────────────────────────────────────────────────────────

@@ -1,11 +1,31 @@
-import Groq from "groq-sdk";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+/**
+ * Llama al endpoint de chat completions de OpenRouter y devuelve el
+ * contenido de texto de la respuesta.
+ */
+const createChatCompletion = async ({ model, messages, temperature, max_tokens }) => {
+  const response = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model, messages, temperature, max_tokens }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.error?.message || `OpenRouter respondió ${response.status}`);
+  }
+
+  return data.choices?.[0]?.message?.content;
+};
 
 /**
  * Calcula la edad a partir de la fecha de nacimiento
@@ -140,7 +160,7 @@ Estructura exacta:
 `;
 
   try {
-    const completion = await groq.chat.completions.create({
+    const responseText = await createChatCompletion({
       messages: [
         {
           role: "user",
@@ -151,8 +171,6 @@ Estructura exacta:
       temperature: 0.3,
       max_tokens: 4000,
     });
-
-    const responseText = completion.choices[0]?.message?.content;
 
     if (!responseText) {
       throw new Error("No se recibió respuesta de la IA");
@@ -201,5 +219,83 @@ Estructura exacta:
   } catch (error) {
     console.error("Error al generar rutina con IA:", error);
     throw new Error(`Error al generar rutina con IA: ${error.message}`);
+  }
+};
+
+/**
+ * Estima las macros de una comida a partir de una descripción en lenguaje natural.
+ * @param {string} description - Ej: "2 huevos fritos con 1 vaso de leche"
+ * @returns {Object} - { calories, protein_g, fat_g, carbs_g }
+ */
+export const estimateMealMacrosWithAI = async (description) => {
+  const prompt = `
+TAREA
+Estima los macronutrientes de la siguiente comida descrita por el usuario.
+
+COMIDA
+"${description}"
+
+REGLAS
+- Basa la estimación en porciones estándar/promedio para los alimentos mencionados.
+- Si la cantidad de un alimento no se especifica, asume una porción individual estándar.
+- No incluyas texto explicativo.
+
+FORMATO DE RESPUESTA
+Devuelve EXCLUSIVAMENTE un JSON válido, sin texto fuera del JSON.
+
+Estructura exacta:
+{
+  "calories": 350,
+  "protein_g": 20.5,
+  "fat_g": 15.2,
+  "carbs_g": 30.1
+}
+`;
+
+  try {
+    const responseText = await createChatCompletion({
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+
+    if (!responseText) {
+      throw new Error("No se recibió respuesta de la IA");
+    }
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("La respuesta de la IA no contiene un JSON válido");
+    }
+
+    const macros = JSON.parse(jsonMatch[0]);
+
+    const isValidNonNegativeNumber = (value) =>
+      typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+    if (
+      !isValidNonNegativeNumber(macros.calories) ||
+      !isValidNonNegativeNumber(macros.protein_g) ||
+      !isValidNonNegativeNumber(macros.fat_g) ||
+      !isValidNonNegativeNumber(macros.carbs_g)
+    ) {
+      throw new Error("La respuesta de la IA no contiene macros válidos");
+    }
+
+    return {
+      calories: Math.round(macros.calories),
+      protein_g: macros.protein_g,
+      fat_g: macros.fat_g,
+      carbs_g: macros.carbs_g,
+    };
+  } catch (error) {
+    console.error("Error al estimar macros con IA:", error);
+    throw new Error(`Error al estimar macros con IA: ${error.message}`);
   }
 };
