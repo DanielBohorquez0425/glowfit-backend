@@ -8,40 +8,42 @@ datasource db {
 }
 
 model User {
-  id                     String                @id @default(uuid()) @db.Uuid
-  email                  String                @unique
-  password               String
-  name                   String?
-  last_name              String?
-  created_at             DateTime              @default(now())
-  updated_at             DateTime              @updatedAt
-  date_of_birth          DateTime?             @map("date_of_birth")
-  gender                 String?
-  goal_id                Int?
-  height                 Float?
-  weight                 Float?
-  has_disability         Boolean?              @default(false) @map("has_disability")
-  disability_description String?               @map("disability_description")
-  bmi                    Float?
-  level                  userLevel             @default(beginner)
-  token_version          Int                   @default(0)
-  role                   UserGlobalRole        @default(USER)
-  deleted_at             DateTime?             @map("deleted_at")
-  gym_classes_instructor gym_classes[]         @relation("gym_classes_instructor")
-  assigned_memberships   gym_memberships[]     @relation("gym_memberships_assigned_byTousers")
-  trained_memberships    gym_memberships[]     @relation("gym_memberships_trainer_idTousers")
-  gym_membership         gym_memberships?      @relation("gym_memberships_user_idTousers")
-  registered_payments    gym_plan_payments[]   @relation("gym_plan_payments_registered_byTousers")
-  plan_payments          gym_plan_payments[]   @relation("gym_plan_payments_user_idTousers")
-  password_reset_codes   PasswordResetCode[]
-  password_setup_tokens  PasswordSetupToken[]
-  refresh_tokens         RefreshToken[]
-  routine_completions    routine_completions[]
-  user_training_days     user_training_days[]
-  nutrition_targets      user_nutrition_targets?
-  daily_nutrition_logs   daily_nutrition_logs[]
-  meal_entries           meal_entries[]
-  goals                  goals?              @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
+  id                          String                  @id @default(uuid()) @db.Uuid
+  email                       String                  @unique
+  password                    String
+  name                        String?
+  last_name                   String?
+  created_at                  DateTime                @default(now())
+  updated_at                  DateTime                @updatedAt
+  date_of_birth               DateTime?               @map("date_of_birth")
+  gender                      String?
+  goal_id                     Int?
+  height                      Float?
+  weight                      Float?
+  has_disability              Boolean?                @default(false) @map("has_disability")
+  disability_description      String?                 @map("disability_description")
+  bmi                         Float?
+  level                       userLevel               @default(beginner)
+  token_version               Int                     @default(0)
+  role                        UserGlobalRole          @default(USER)
+  deleted_at                  DateTime?               @map("deleted_at")
+  current_streak              Int                     @default(0)
+  last_streak_activation_date DateTime?               @db.Date
+  daily_nutrition_logs        daily_nutrition_logs[]
+  gym_classes_instructor      gym_classes[]           @relation("gym_classes_instructor")
+  assigned_memberships        gym_memberships[]       @relation("gym_memberships_assigned_byTousers")
+  trained_memberships         gym_memberships[]       @relation("gym_memberships_trainer_idTousers")
+  gym_membership              gym_memberships?        @relation("gym_memberships_user_idTousers")
+  registered_payments         gym_plan_payments[]     @relation("gym_plan_payments_registered_byTousers")
+  plan_payments               gym_plan_payments[]     @relation("gym_plan_payments_user_idTousers")
+  meal_entries                meal_entries[]
+  password_reset_codes        PasswordResetCode[]
+  password_setup_tokens       PasswordSetupToken[]
+  refresh_tokens              RefreshToken[]
+  routine_completions         routine_completions[]
+  nutrition_targets           user_nutrition_targets?
+  user_training_days          user_training_days[]
+  goals                       goals?                  @relation(fields: [goal_id], references: [id], onUpdate: NoAction, map: "fk_users_goal")
 
   @@index([goal_id], map: "idx_users_goal_id")
   @@index([deleted_at], map: "idx_users_deleted_at")
@@ -399,52 +401,6 @@ model gym_classes {
   @@index([instructor_id], map: "idx_gym_classes_instructor")
 }
 
-enum userLevel {
-  beginner
-  intermediate
-  advanced
-}
-
-enum membership_status {
-  ACTIVE
-  EXPIRED
-  SUSPENDED
-  CANCELLED
-}
-
-enum invitation_status {
-  PENDING
-  ACCEPTED
-  REJECTED
-}
-
-enum UserGlobalRole {
-  USER
-  ADMIN
-  SUPERADMIN
-  MEMBER
-}
-
-enum GymRole {
-  GYM_ADMIN
-  TRAINER
-  MEMBER
-}
-
-enum plan_duration_unit {
-  DAY
-  WEEK
-  MONTH
-  YEAR
-}
-
-enum payment_method {
-  CASH
-  CARD
-  TRANSFER
-  OTHER
-}
-
 /// DailyFit: current calculated macro targets for a user (1:1).
 model user_nutrition_targets {
   user_id         String   @id @db.Uuid
@@ -505,6 +461,52 @@ model meal_entries {
   @@index([daily_log_id], map: "idx_meal_entries_daily_log_id")
   @@index([user_id], map: "idx_meal_entries_user_id")
   @@map("meal_entries")
+}
+
+enum userLevel {
+  beginner
+  intermediate
+  advanced
+}
+
+enum membership_status {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+enum invitation_status {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum UserGlobalRole {
+  USER
+  ADMIN
+  SUPERADMIN
+  MEMBER
+}
+
+enum GymRole {
+  GYM_ADMIN
+  TRAINER
+  MEMBER
+}
+
+enum plan_duration_unit {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum payment_method {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
 }
 
 enum daily_goal_status {

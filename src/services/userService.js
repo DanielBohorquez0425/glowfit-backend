@@ -1,6 +1,7 @@
 import * as userRepository from "../repositories/userRepository.js";
 import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
 import * as dailyfitService from "./dailyfitService.js";
+import * as streakService from "./streakService.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -319,6 +320,19 @@ export const setActiveRoutineForDay = async (userId, day, routineId) => {
   }
 
   return await userRepository.setActiveRoutineForDay(userId, dayNum, routineId);
+};
+
+export const getStreak = async (userId) => {
+  if (!userId) {
+    throw new Error("El ID del usuario es obligatorio");
+  }
+
+  const user = await userRepository.findById(userId);
+  if (!user) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  return await streakService.getStreak(userId);
 };
 
 export const getWeeklyActivity = async (userId, week, year) => {

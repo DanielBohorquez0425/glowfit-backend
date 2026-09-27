@@ -542,6 +542,34 @@ export const setActiveRoutine = async (req, res) => {
   }
 };
 
+// Obtener la racha actual del usuario
+export const getStreak = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Autorización: el usuario solo puede ver su propia racha
+    if (req.user.userId !== id) {
+      return res.status(403).json({
+        error: "No tienes permiso para ver la racha de este usuario",
+      });
+    }
+
+    const result = await userService.getStreak(id);
+
+    res.json(result);
+  } catch (error) {
+    console.error("Error al obtener la racha del usuario:", error);
+
+    if (error.message === "Usuario no encontrado" || error.message === "NOT_FOUND") {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.status(500).json({
+      error: error.message || "Error al obtener la racha del usuario",
+    });
+  }
+};
+
 // Obtener actividad semanal del usuario
 export const getWeeklyActivity = async (req, res) => {
   try {

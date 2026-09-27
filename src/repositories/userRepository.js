@@ -39,6 +39,21 @@ export const findByEmail = async (email) => {
   });
 };
 
+export const getStreakState = async (userId) => {
+  return await prisma.user.findFirst({
+    where: { id: userId, deleted_at: null },
+    select: { current_streak: true, last_streak_activation_date: true },
+  });
+};
+
+export const updateStreakState = async (userId, { current_streak, last_streak_activation_date }) => {
+  return await prisma.user.update({
+    where: { id: userId },
+    data: { current_streak, last_streak_activation_date },
+    select: { current_streak: true, last_streak_activation_date: true },
+  });
+};
+
 /**
  * Busca por email incluyendo usuarios eliminados. El email de una cuenta
  * eliminada sigue ocupado, así que el chequeo de duplicados al registrar

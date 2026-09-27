@@ -1,4 +1,5 @@
 import * as routineRepository from "../repositories/routineRepository.js";
+import * as streakService from "./streakService.js";
 
 // Validates a single series. reps must be positive; weight/rest_time
 // (when provided) must not be negative.
@@ -103,6 +104,12 @@ export const markRoutineAsCompleted = async (routineId, userId) => {
     routineId,
     userId,
   );
+
+  try {
+    await streakService.registerActivity(userId);
+  } catch (error) {
+    console.error("Error al registrar la racha tras completar rutina:", error);
+  }
 };
 
 export const updateRoutine = async (id, userId, data) => {

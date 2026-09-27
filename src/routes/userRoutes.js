@@ -10,6 +10,7 @@ import {
   getUserActivity,
   setActiveRoutine,
   getWeeklyActivity,
+  getStreak,
   forgotPassword,
   verifyResetCode,
   resetPassword,
@@ -41,6 +42,7 @@ router.get("/profile", authenticateToken, getProfile);
 router.patch("/profile/switch-role", authenticateToken, switchActiveRole);
 router.get("/:id/activity", authenticateToken, getUserActivity);
 router.get("/:id/activity/weekly", authenticateToken, getWeeklyActivity);
+router.get("/:id/streak", authenticateToken, getStreak);
 router.get("/:id", authenticateToken, getUserById);
 router.put("/:id", authenticateToken, updateUser);
 router.patch("/:userId/active-routine", authenticateToken, setActiveRoutine);

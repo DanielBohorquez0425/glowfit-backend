@@ -1,5 +1,6 @@
 import * as dailyfitRepository from "../repositories/dailyfitRepository.js";
 import * as aiService from "./aiService.js";
+import * as streakService from "./streakService.js";
 import prisma from "../config/prismaClient.js";
 import {
   calculateTargets,
@@ -235,6 +236,15 @@ const recomputeAndUpdateLog = async (tx, log) => {
   return await dailyfitRepository.updateDailyLogTotals(log.id, { ...consumed, status }, tx);
 };
 
+const registerStreakActivityIfCompleted = async (userId, log) => {
+  if (log.status !== "COMPLETED") return;
+  try {
+    await streakService.registerActivity(userId);
+  } catch (error) {
+    console.error("Error al registrar la racha tras alcanzar la meta de DailyFit:", error);
+  }
+};
+
 /**
  * Meal writes run in a single transaction (get/create the day's log, write the
  * meal, then recompute the log's totals and status from the aggregated meals)
@@ -250,7 +260,7 @@ export const createMeal = async (userId, input) => {
   const fatG = validateNonNegativeNumber(input.fat_g);
   const carbsG = validateNonNegativeNumber(input.carbs_g);
 
-  return await prisma.$transaction(async (tx) => {
+  const { meal, updatedLog } = await prisma.$transaction(async (tx) => {
     const log = await getOrCreateDailyLog(userId, logDate, tx);
 
     const meal = await dailyfitRepository.createMeal(
@@ -267,14 +277,18 @@ export const createMeal = async (userId, input) => {
       tx,
     );
 
-    await recomputeAndUpdateLog(tx, log);
+    const updatedLog = await recomputeAndUpdateLog(tx, log);
 
-    return meal;
+    return { meal, updatedLog };
   });
+
+  await registerStreakActivityIfCompleted(userId, updatedLog);
+
+  return meal;
 };
 
 export const updateMeal = async (userId, mealId, input) => {
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const existingMeal = await dailyfitRepository.findMealByIdAndUser(mealId, userId, tx);
     if (!existingMeal) throw new Error("MEAL_NOT_FOUND");
 
@@ -291,20 +305,26 @@ export const updateMeal = async (userId, mealId, input) => {
     const updatedMeal = await dailyfitRepository.updateMeal(mealId, data, tx);
 
     const log = await dailyfitRepository.findDailyLogById(existingMeal.daily_log_id, tx);
-    await recomputeAndUpdateLog(tx, log);
+    const updatedLog = await recomputeAndUpdateLog(tx, log);
 
-    return updatedMeal;
+    return { updatedMeal, updatedLog };
   });
+
+  await registerStreakActivityIfCompleted(userId, result.updatedLog);
+
+  return result.updatedMeal;
 };
 
 export const deleteMeal = async (userId, mealId) => {
-  return await prisma.$transaction(async (tx) => {
+  const updatedLog = await prisma.$transaction(async (tx) => {
     const existingMeal = await dailyfitRepository.findMealByIdAndUser(mealId, userId, tx);
     if (!existingMeal) throw new Error("MEAL_NOT_FOUND");
 
     await dailyfitRepository.deleteMeal(mealId, tx);
 
     const log = await dailyfitRepository.findDailyLogById(existingMeal.daily_log_id, tx);
-    await recomputeAndUpdateLog(tx, log);
+    return await recomputeAndUpdateLog(tx, log);
   });
+
+  await registerStreakActivityIfCompleted(userId, updatedLog);
 };
