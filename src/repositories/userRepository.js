@@ -66,46 +66,79 @@ export const findByEmailIncludingDeleted = async (email) => {
   });
 };
 
-export const findByEmailWithMembership = async (email) => {
+// take: 2 is enough for the service to detect ambiguous (case-variant) emails.
+export const findManyByEmailInsensitiveIncludingDeleted = async (email) => {
+  return await prisma.user.findMany({
+    where: { email: { equals: email, mode: "insensitive" } },
+    select: { id: true, deleted_at: true },
+    take: 2,
+  });
+};
+
+export const findByGoogleIdIncludingDeleted = async (googleId) => {
   return await prisma.user.findFirst({
-    where: { email, deleted_at: null },
+    where: { google_id: googleId },
+    select: { id: true, deleted_at: true },
+  });
+};
+
+const userWithMembershipSelect = {
+  id: true,
+  email: true,
+  password: true,
+  name: true,
+  last_name: true,
+  date_of_birth: true,
+  weight: true,
+  height: true,
+  bmi: true,
+  gender: true,
+  level: true,
+  goal_id: true,
+  created_at: true,
+  updated_at: true,
+  role: true,
+  gym_membership: {
     select: {
-      id: true,
-      email: true,
-      password: true,
-      name: true,
-      last_name: true,
-      date_of_birth: true,
-      weight: true,
-      height: true,
-      bmi: true,
-      gender: true,
-      level: true,
-      goal_id: true,
-      created_at: true,
-      updated_at: true,
-      role: true,
-      gym_membership: {
+      gym_id: true,
+      status: true,
+      gym_roles: true,
+      active_role: true,
+      plan: true,
+      start_date: true,
+      end_date: true,
+      gyms: {
         select: {
-          gym_id: true,
-          status: true,
-          gym_roles: true,
-          active_role: true,
-          plan: true,
-          start_date: true,
-          end_date: true,
-          gyms: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              logo_url: true,
-              city: true,
-            },
-          },
+          id: true,
+          name: true,
+          slug: true,
+          logo_url: true,
+          city: true,
         },
       },
     },
+  },
+};
+
+export const findByEmailWithMembership = async (email) => {
+  return await prisma.user.findFirst({
+    where: { email, deleted_at: null },
+    select: userWithMembershipSelect,
+  });
+};
+
+export const findByGoogleIdWithMembership = async (googleId) => {
+  return await prisma.user.findFirst({
+    where: { google_id: googleId, deleted_at: null },
+    select: userWithMembershipSelect,
+  });
+};
+
+export const linkGoogleId = async (id, data) => {
+  return await prisma.user.update({
+    where: { id },
+    data,
+    select: { id: true },
   });
 };
 

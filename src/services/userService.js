@@ -5,6 +5,7 @@ import * as streakService from "./streakService.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { generateAccessToken } from "../utils/jwtUtils.js";
 import { sendPasswordResetCode, sendPasswordSetupEmail } from "./emailService.js";
 
@@ -60,17 +61,23 @@ export const register = async (userData) => {
   return { user: userWithoutPassword, accessToken };
 };
 
+// Valid bcrypt hash (cost 10, same as register) compared when no real hash exists,
+// so response time does not reveal whether the account exists or has a password.
+const DUMMY_HASH = "$2b$10$DQu3eL8UdlyH4AshColYn.AkUsjk/WVq9haWv2ZtsHbpU1kuRYLE2";
+
 export const login = async (email, password) => {
   const user = await userRepository.findByEmailWithMembership(email);
-  if (!user) {
+
+  // Unknown users and Google-only accounts (no password) get the same error as a wrong password.
+  const isValidPassword = await bcrypt.compare(password, user?.password || DUMMY_HASH);
+  if (!user || !user.password || !isValidPassword) {
     throw new Error("Credenciales inválidas");
   }
 
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    throw new Error("Credenciales inválidas");
-  }
+  return await issueSession(user);
+};
 
+const issueSession = async (user) => {
   const newTokenVersion = await userRepository.incrementTokenVersion(user.id);
   const accessToken = generateAccessToken(user.id, user.email, newTokenVersion);
 
@@ -79,6 +86,93 @@ export const login = async (email, password) => {
   const mappedMembership = mapGymMembership(gym_membership);
 
   return { user: { ...userWithoutPassword, gym_membership: mappedMembership }, accessToken };
+};
+
+const googleClient = new OAuth2Client();
+
+// Soft-deleted accounts keep their google_id and cannot log in.
+const findActiveByGoogleId = async (googleId) => {
+  const match = await userRepository.findByGoogleIdIncludingDeleted(googleId);
+  if (!match) return null;
+  if (match.deleted_at) {
+    throw new Error("Credenciales inválidas");
+  }
+  return await userRepository.findByGoogleIdWithMembership(googleId);
+};
+
+const linkOrCreateGoogleUser = async ({ sub, email, given_name, family_name }) => {
+  // Case-insensitive: registration stores emails exactly as typed, so
+  // case-variants can coexist and make the match ambiguous.
+  const matches = await userRepository.findManyByEmailInsensitiveIncludingDeleted(email);
+  if (matches.length > 1) {
+    throw new Error("GOOGLE_ACCOUNT_CONFLICT");
+  }
+  const existing = matches[0];
+  if (existing) {
+    // Deleted accounts keep their email occupied and cannot log in.
+    if (existing.deleted_at) {
+      throw new Error("Credenciales inválidas");
+    }
+    // Safe to link: Google verified ownership of this email.
+    // Clear the password: registration does not verify emails, so a third
+    // party could have pre-registered this address with a password they know.
+    await userRepository.linkGoogleId(existing.id, { google_id: sub, password: null });
+  } else {
+    await userRepository.create({
+      email,
+      google_id: sub,
+      name: given_name || null,
+      last_name: family_name || null,
+      password: null,
+    });
+  }
+};
+
+export const googleLogin = async (idToken) => {
+  const audience = (process.env.GOOGLE_CLIENT_IDS || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (audience.length === 0) {
+    throw new Error("GOOGLE_CLIENT_IDS_NOT_CONFIGURED");
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience });
+    payload = ticket.getPayload();
+  } catch {
+    throw new Error("INVALID_GOOGLE_TOKEN");
+  }
+  if (!payload) {
+    throw new Error("INVALID_GOOGLE_TOKEN");
+  }
+  if (payload.email_verified !== true) {
+    throw new Error("GOOGLE_EMAIL_NOT_VERIFIED");
+  }
+
+  if (typeof payload.email !== "string" || typeof payload.sub !== "string") {
+    throw new Error("INVALID_GOOGLE_TOKEN");
+  }
+
+  const { sub, given_name, family_name } = payload;
+  const email = payload.email.toLowerCase();
+
+  let user = await findActiveByGoogleId(sub);
+  if (!user) {
+    try {
+      await linkOrCreateGoogleUser({ sub, email, given_name, family_name });
+    } catch (error) {
+      // Concurrent first login: another request already created/linked this google_id.
+      if (error.code !== "P2002") throw error;
+    }
+    user = await findActiveByGoogleId(sub);
+  }
+  if (!user) {
+    throw new Error("Credenciales inválidas");
+  }
+
+  return await issueSession(user);
 };
 
 

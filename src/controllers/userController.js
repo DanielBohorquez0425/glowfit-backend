@@ -50,6 +50,37 @@ export const login = async (req, res) => {
   }
 };
 
+// Login con Google (ID token del SDK nativo)
+export const googleLogin = async (req, res) => {
+  const { idToken } = req.body;
+
+  if (!idToken || typeof idToken !== "string") {
+    return res.status(400).json({ error: "El idToken es obligatorio" });
+  }
+
+  try {
+    const result = await userService.googleLogin(idToken);
+    return res.json(result);
+  } catch (error) {
+    if (
+      error.message === "INVALID_GOOGLE_TOKEN" ||
+      error.message === "GOOGLE_EMAIL_NOT_VERIFIED" ||
+      error.message === "Credenciales inválidas"
+    ) {
+      return res.status(401).json({ error: error.message });
+    }
+    if (error.message === "GOOGLE_ACCOUNT_CONFLICT") {
+      return res.status(409).json({ error: "Existen varias cuentas con este email. Contacte a soporte." });
+    }
+    if (error.message === "GOOGLE_CLIENT_IDS_NOT_CONFIGURED") {
+      console.error("Error en login con Google: GOOGLE_CLIENT_IDS no está configurado");
+    } else {
+      console.error("Error en login con Google:", error);
+    }
+    return res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
 // Logout de usuario
 export const logout = async (req, res) => {
   try {

@@ -112,6 +112,7 @@ Request → Route → Controller (validate) → Service (business logic) → Rep
 |--------|------|------|-------------|
 | POST | `/users/register` | Public (authLimiter) | Register new user |
 | POST | `/users/login` | Public (authLimiter) | Login, returns accessToken |
+| POST | `/users/google` | Public (googleAuthLimiter) | Login with Google ID token (`{ idToken }`), returns user + accessToken |
 | POST | `/users/logout` | Required | Logout (client-side token removal) |
 | POST | `/users/forgot-password` | Public (authLimiter) | Request password reset code |
 | POST | `/users/verify-reset-code` | Public (authLimiter) | Verify 6-digit reset code |
@@ -283,6 +284,7 @@ set. `set_number` is optional (auto-assigned by position when omitted).
 |---------|--------|-----|---------|
 | `generalLimiter` | 15 min | 100/IP | General API protection |
 | `authLimiter` | 15 min | 5/IP | Auth endpoints (brute force prevention) |
+| `googleAuthLimiter` | 15 min | 20/IP | Google login (`/users/google`) |
 | `aiLimiter` | 1 hour | 10/user-ID | AI routine generation (cost control) |
 
 ## Environment Variables
@@ -291,6 +293,7 @@ set. `set_number` is optional (auto-assigned by position when omitted).
 |----------|----------|-------------|
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | Secret for signing JWT tokens |
+| `GOOGLE_CLIENT_IDS` | Yes (Google login) | Comma-separated Google OAuth client IDs (Android, iOS, web) accepted as ID token audience |
 | `GROQ_API_KEY` | Yes | Groq API key for AI routine generation |
 | `RESEND_KEY` | Yes | Resend API key for transactional emails |
 | `PORT` | No | Server port (default: 3000) |

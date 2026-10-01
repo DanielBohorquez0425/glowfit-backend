@@ -32,6 +32,21 @@ export const authLimiter = rateLimit({
 });
 
 /**
+ * Rate limiting para el login con Google
+ * 20 intentos por 15 minutos por IP
+ * Más holgado que authLimiter: el ID token ya lo valida Google
+ */
+export const googleAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: {
+    error: "Demasiados intentos de autenticación, intenta nuevamente en 15 minutos",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Rate limiting crítico para endpoints que usan IA (Groq API)
  * 10 requests por hora por usuario/IP
  * CRÍTICO: Cada llamada tiene costo monetario

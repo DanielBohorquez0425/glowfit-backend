@@ -2,6 +2,7 @@ import express from "express";
 import {
   register,
   login,
+  googleLogin,
   logout,
   getUsers,
   getProfile,
@@ -22,13 +23,14 @@ import {
   deleteUser,
 } from "../controllers/userController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
-import { authLimiter } from "../middlewares/rateLimitMiddleware.js";
+import { authLimiter, googleAuthLimiter } from "../middlewares/rateLimitMiddleware.js";
 
 const router = express.Router();
 
 // rutas publicas con rate limiting estricto
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
+router.post("/google", googleAuthLimiter, googleLogin);
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/verify-reset-code", authLimiter, verifyResetCode);
 router.post("/reset-password", authLimiter, resetPassword);
