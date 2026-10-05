@@ -323,3 +323,100 @@ Estructura exacta:
     throw new Error(`Error al estimar macros con IA: ${error.message}`);
   }
 };
+
+/**
+ * Estima las macros de una comida a partir de una foto (y una descripción opcional).
+ * @param {Object} params
+ * @param {Buffer} params.imageBuffer - Contenido binario de la imagen
+ * @param {string} params.mimeType - Ej: "image/jpeg"
+ * @param {string} [params.description] - Contexto extra del usuario, ej: "sin aceite"
+ * @returns {Object} - { title, calories, protein_g, fat_g, carbs_g }
+ */
+export const estimateMealMacrosFromPhotoWithAI = async ({ imageBuffer, mimeType, description }) => {
+  const prompt = `
+TAREA
+Identifica la comida de la foto y estima sus macronutrientes.
+
+${description ? `CONTEXTO DEL USUARIO\n"${description}"\n` : ""}
+REGLAS
+- Estima el tamaño de las porciones a partir de lo visible en la foto (tamaño del plato, cubiertos, etc.).
+- Si no puedes ver una cantidad con claridad, asume una porción individual estándar.
+- Si la foto NO contiene comida o bebida, responde únicamente {"is_food": false}.
+- El "title" debe ser un nombre corto de la comida, en el idioma del contexto del usuario o en español si no hay contexto.
+- No incluyas texto explicativo.
+
+FORMATO DE RESPUESTA
+Devuelve EXCLUSIVAMENTE un JSON válido, sin texto fuera del JSON.
+
+Estructura exacta:
+{
+  "is_food": true,
+  "title": "Arroz con pollo",
+  "calories": 350,
+  "protein_g": 20.5,
+  "fat_g": 15.2,
+  "carbs_g": 30.1
+}
+`;
+
+  let result;
+
+  try {
+    const responseText = await createChatCompletionWithFallback({
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: { url: `data:${mimeType};base64,${imageBuffer.toString("base64")}` },
+            },
+          ],
+        },
+      ],
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+
+    if (!responseText) {
+      throw new Error("No se recibió respuesta de la IA");
+    }
+
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("La respuesta de la IA no contiene un JSON válido");
+    }
+
+    result = JSON.parse(jsonMatch[0]);
+  } catch (error) {
+    console.error("Error al estimar macros desde foto con IA:", error);
+    throw new Error(`Error al estimar macros desde foto con IA: ${error.message}`);
+  }
+
+  if (result.is_food === false) {
+    throw new Error("NO_FOOD_DETECTED");
+  }
+
+  const isValidNonNegativeNumber = (value) =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0;
+
+  if (
+    typeof result.title !== "string" ||
+    !result.title.trim() ||
+    !isValidNonNegativeNumber(result.calories) ||
+    !isValidNonNegativeNumber(result.protein_g) ||
+    !isValidNonNegativeNumber(result.fat_g) ||
+    !isValidNonNegativeNumber(result.carbs_g)
+  ) {
+    throw new Error("La respuesta de la IA no contiene macros válidos");
+  }
+
+  return {
+    title: result.title.trim(),
+    calories: Math.round(result.calories),
+    protein_g: result.protein_g,
+    fat_g: result.fat_g,
+    carbs_g: result.carbs_g,
+  };
+};

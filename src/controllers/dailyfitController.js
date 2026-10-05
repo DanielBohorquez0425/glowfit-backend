@@ -59,6 +59,11 @@ const handleDailyfitError = (error, res, fallbackMessage) => {
     return true;
   }
 
+  if (error.message === "NO_FOOD_DETECTED") {
+    res.status(422).json({ error: "No food was detected in the photo. Try another picture." });
+    return true;
+  }
+
   if (error.message === "USER_NOT_FOUND" || error.code === "P2025") {
     res.status(404).json({ error: "Record not found." });
     return true;
@@ -117,6 +122,19 @@ export const estimateMeal = async (req, res) => {
     res.json({ success: true, data: macros });
   } catch (error) {
     handleDailyfitError(error, res, "Internal error while estimating meal macros.");
+  }
+};
+
+/** POST /dailyfit/meals/estimate-photo (multipart/form-data: photo, description?) */
+export const estimateMealFromPhoto = async (req, res) => {
+  try {
+    const estimate = await dailyfitService.estimateMealMacrosFromPhoto(
+      req.file,
+      req.body?.description,
+    );
+    res.json({ success: true, data: estimate });
+  } catch (error) {
+    handleDailyfitError(error, res, "Internal error while estimating meal macros from photo.");
   }
 };
 
