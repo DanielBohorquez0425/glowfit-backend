@@ -1,36 +1,32 @@
 import * as exerciseService from "../services/exerciseService.js";
 
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const getExercises = async (req, res) => {
   try {
-    const { limit, page, muscleGroupId, includeRelations, link, difficulty } = req.query;
+    const { limit, cursor, muscleGroupId, includeRelations, link, difficulty } = req.query;
 
-    const parsedLimit = limit ? parseInt(limit) : 10;
-    const parsedPage = page ? parseInt(page) : 1;
-    const offset = (parsedPage - 1) * parsedLimit;
+    const parsedLimit = limit === undefined ? DEFAULT_LIMIT : Number(limit);
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 1) {
+      return res.status(400).json({ error: "limit debe ser un entero positivo" });
+    }
+    if (cursor !== undefined && !UUID_REGEX.test(cursor)) {
+      return res.status(400).json({ error: "cursor inválido" });
+    }
 
-    const options = {
-      limit: parsedLimit,
-      offset: offset,
+    const result = await exerciseService.getExercisesPage({
+      limit: Math.min(parsedLimit, MAX_LIMIT),
+      cursor,
       muscleGroupId,
       includeRelations: includeRelations === "true",
       link,
       difficulty,
-    };
-
-    const result = await exerciseService.getExercises(options);
-    const totalPages = Math.ceil(result.total / parsedLimit);
-
-    res.json({
-      pagination: {
-        total: result.total,
-        page: parsedPage,
-        limit: parsedLimit,
-        totalPages: totalPages,
-        hasNextPage: parsedPage < totalPages,
-        hasPreviousPage: parsedPage > 1,
-      },
-      data: result.exercises,
     });
+
+    res.json(result);
   } catch (error) {
     console.error("Error fetching exercises:", error);
     res.status(500).json({ error: "Error al obtener ejercicios" });

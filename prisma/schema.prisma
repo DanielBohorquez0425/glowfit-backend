@@ -122,6 +122,7 @@ model Exercise {
   muscle_group              MuscleGroup                 @relation(fields: [muscle_group_id], references: [id], onDelete: Cascade)
   popular_routine_exercises popular_routine_exercises[]
 
+  @@index([name, id])
   @@map("exercises")
 }
 

@@ -54,6 +54,54 @@ export const findAll = async (options = {}) => {
   return { exercises, total };
 };
 
+export const findPage = async (options = {}) => {
+  const {
+    limit,
+    cursor,
+    muscleGroupId,
+    includeRelations = false,
+    link,
+    difficulty,
+  } = options;
+
+  const where = {};
+  if (muscleGroupId) {
+    where.muscle_group_id = muscleGroupId;
+  }
+  if (difficulty) {
+    where.difficulty = difficulty;
+  }
+  if (link) {
+    where.link_img = link;
+  }
+
+  const include = includeRelations
+    ? {
+        muscle_group: true,
+        exercise_muscles: {
+          include: {
+            muscle_group: true,
+          },
+        },
+      }
+    : undefined;
+
+  // id breaks ties between equal names so the cursor position is deterministic
+  const queryOptions = {
+    where,
+    include,
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    take: limit + 1,
+  };
+
+  if (cursor) {
+    queryOptions.cursor = { id: cursor };
+    queryOptions.skip = 1;
+  }
+
+  return await prisma.exercise.findMany(queryOptions);
+};
+
 export const findById = async (id) => {
   return await prisma.exercise.findUnique({
     where: { id },
