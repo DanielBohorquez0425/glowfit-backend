@@ -89,12 +89,36 @@ test("controller: forwards cursor and filters", async () => {
   assert.deepEqual(calls[0][0], {
     limit: 5,
     cursor: CURSOR,
+    search: undefined,
     muscleGroupId: undefined,
     includeRelations: true,
     link: undefined,
     difficulty: "beginner",
   });
 });
+
+test("controller: forwards trimmed search", async () => {
+  await run({ search: "  press  " });
+  assert.equal(calls[0][0].search, "press");
+});
+
+for (const search of ["", "   "]) {
+  test(`controller: ignores blank search ${JSON.stringify(search)}`, async () => {
+    await run({ search });
+    assert.equal(calls[0][0].search, undefined);
+  });
+}
+
+for (const [label, search] of [
+  ["too long search", "a".repeat(101)],
+  ["array search", ["a", "b"]],
+]) {
+  test(`controller: 400 for ${label}`, async () => {
+    const res = await run({ search });
+    assert.equal(res.statusCode, 400);
+    assert.equal(calls.length, 0);
+  });
+}
 
 test("controller: caps limit at 100", async () => {
   await run({ limit: "5000" });

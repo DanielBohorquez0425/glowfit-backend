@@ -58,6 +58,7 @@ export const findPage = async (options = {}) => {
   const {
     limit,
     cursor,
+    search,
     muscleGroupId,
     includeRelations = false,
     link,
@@ -73,6 +74,9 @@ export const findPage = async (options = {}) => {
   }
   if (link) {
     where.link_img = link;
+  }
+  if (search) {
+    where.name = { contains: search, mode: "insensitive" };
   }
 
   const include = includeRelations

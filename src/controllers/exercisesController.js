@@ -2,12 +2,13 @@ import * as exerciseService from "../services/exerciseService.js";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+const MAX_SEARCH_LENGTH = 100;
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const getExercises = async (req, res) => {
   try {
-    const { limit, cursor, muscleGroupId, includeRelations, link, difficulty } = req.query;
+    const { limit, cursor, search, muscleGroupId, includeRelations, link, difficulty } = req.query;
 
     const parsedLimit = limit === undefined ? DEFAULT_LIMIT : Number(limit);
     if (!Number.isInteger(parsedLimit) || parsedLimit < 1) {
@@ -16,10 +17,17 @@ export const getExercises = async (req, res) => {
     if (cursor !== undefined && !UUID_REGEX.test(cursor)) {
       return res.status(400).json({ error: "cursor inválido" });
     }
+    if (
+      search !== undefined &&
+      (typeof search !== "string" || search.length > MAX_SEARCH_LENGTH)
+    ) {
+      return res.status(400).json({ error: "search inválido" });
+    }
 
     const result = await exerciseService.getExercisesPage({
       limit: Math.min(parsedLimit, MAX_LIMIT),
       cursor,
+      search: search?.trim() || undefined,
       muscleGroupId,
       includeRelations: includeRelations === "true",
       link,
