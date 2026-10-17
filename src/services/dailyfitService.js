@@ -13,6 +13,8 @@ import {
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_CALENDAR_RANGE_DAYS = 62;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// Caps the free-text hint sent to the AI alongside a meal photo (token cost / prompt injection).
+const MAX_PHOTO_DESCRIPTION_LENGTH = 300;
 
 const parseLogDate = (dateStr) => {
   if (typeof dateStr !== "string" || !DATE_RE.test(dateStr)) throw new Error("INVALID_DATE");
@@ -190,6 +192,34 @@ export const estimateMealMacros = async (description) => {
   try {
     return await aiService.estimateMealMacrosWithAI(description.trim());
   } catch (error) {
+    throw new Error("AI_ESTIMATION_FAILED");
+  }
+};
+
+/**
+ * Estimates title + macros from a meal photo via AI, without persisting the
+ * photo or the meal. Same preview flow as estimateMealMacros: the caller
+ * reviews/edits the result, then saves it through createMeal.
+ */
+export const estimateMealMacrosFromPhoto = async (photo, description) => {
+  if (!photo?.buffer?.length || typeof photo.mimetype !== "string") {
+    throw new Error("INVALID_INPUT");
+  }
+  if (
+    description !== undefined &&
+    (typeof description !== "string" || description.length > MAX_PHOTO_DESCRIPTION_LENGTH)
+  ) {
+    throw new Error("INVALID_INPUT");
+  }
+
+  try {
+    return await aiService.estimateMealMacrosFromPhotoWithAI({
+      imageBuffer: photo.buffer,
+      mimeType: photo.mimetype,
+      description: description?.trim() || undefined,
+    });
+  } catch (error) {
+    if (error.message === "NO_FOOD_DETECTED") throw error;
     throw new Error("AI_ESTIMATION_FAILED");
   }
 };
