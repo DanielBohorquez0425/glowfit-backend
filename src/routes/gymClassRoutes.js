@@ -5,6 +5,9 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  enrollInClass,
+  cancelEnrollment,
+  listEnrollments,
 } from "../controllers/gymClassController.js";
 import {
   authenticateToken,
@@ -42,6 +45,24 @@ router.delete(
   authenticateToken,
   requireGymRole("GYM_ADMIN"),
   deleteClass,
+);
+router.post(
+  "/:gymId/classes/:classId/enrollments",
+  authenticateToken,
+  requireGymRole("GYM_ADMIN", "TRAINER", "MEMBER"),
+  enrollInClass,
+);
+router.delete(
+  "/:gymId/classes/:classId/enrollments/me",
+  authenticateToken,
+  requireGymRole("GYM_ADMIN", "TRAINER", "MEMBER"),
+  cancelEnrollment,
+);
+router.get(
+  "/:gymId/classes/:classId/enrollments",
+  authenticateToken,
+  requireGymRole("GYM_ADMIN"),
+  listEnrollments,
 );
 
 export default router;

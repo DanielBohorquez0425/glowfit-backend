@@ -30,3 +30,10 @@ export const findAll = async (options = {}) => {
 
   return { gyms, total };
 };
+
+export const findTimezoneById = async (id) => {
+  return await prisma.gyms.findUnique({
+    where: { id },
+    select: { timezone: true },
+  });
+};

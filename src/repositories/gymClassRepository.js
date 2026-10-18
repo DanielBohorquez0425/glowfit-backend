@@ -15,6 +15,7 @@ const CLASS_SELECT = {
   color: true,
   created_at: true,
   updated_at: true,
+  gyms: { select: { timezone: true } },
   instructor: {
     select: {
       id: true,
