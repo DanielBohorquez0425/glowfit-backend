@@ -1,4 +1,6 @@
 import * as gymClassRepository from "../repositories/gymClassRepository.js";
+import * as gymClassEnrollmentRepository from "../repositories/gymClassEnrollmentRepository.js";
+import * as gymRepository from "../repositories/gymRepository.js";
 import * as gymMembershipRepository from "../repositories/gymMembershipRepository.js";
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -14,7 +16,6 @@ const UPDATABLE_FIELDS = [
   "start_minutes",
   "duration_minutes",
   "capacity",
-  "enrolled",
 ];
 
 // Dates are parsed as UTC midnight so the @db.Date column round-trips
@@ -25,12 +26,44 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-// Current server day at UTC midnight, matching how @db.Date values are stored.
-const todayUtc = () => {
-  const now = new Date();
-  return new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+const DEFAULT_TIMEZONE = "America/Bogota";
+
+// start_minutes is stored in the gym's local time and class_date is a UTC
+// midnight @db.Date, so compare both against "now" expressed in the gym's zone.
+const localDateAndMinutes = (timezone, now) => {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone || DEFAULT_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(now)
+      .map(({ type, value }) => [type, value]),
   );
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    minutes: Number(parts.hour) * 60 + Number(parts.minute),
+  };
+};
+
+export const hasClassStarted = (cls, now = new Date()) => {
+  const local = localDateAndMinutes(cls.gyms?.timezone, now);
+  const classDate = cls.class_date.toISOString().slice(0, 10);
+
+  return (
+    classDate < local.date ||
+    (classDate === local.date && cls.start_minutes <= local.minutes)
+  );
+};
+
+const findClassInGym = async (gymId, classId) => {
+  const cls = await gymClassRepository.findById(classId);
+  if (!cls || cls.gym_id !== gymId) throw new Error("CLASS_NOT_FOUND");
+  return cls;
 };
 
 const assertInstructorInGym = async (gymId, instructorId) => {
@@ -56,7 +89,6 @@ const validateClassFields = (fields) => {
     start_minutes,
     duration_minutes,
     capacity,
-    enrolled,
   } = fields;
 
   if (!class_date) throw new Error("INVALID_DATE");
@@ -80,10 +112,6 @@ const validateClassFields = (fields) => {
   ) {
     throw new Error("INVALID_START");
   }
-  if (!Number.isInteger(enrolled) || enrolled < 0) {
-    throw new Error("INVALID_INPUT");
-  }
-  if (enrolled > capacity) throw new Error("ENROLLED_EXCEEDS_CAPACITY");
 };
 
 export const listClasses = async (gymId, { from, to } = {}) => {
@@ -100,12 +128,26 @@ export const listClasses = async (gymId, { from, to } = {}) => {
   return await gymClassRepository.findByGymAndRange(gymId, fromDate, toDate);
 };
 
-export const listTodayClasses = async (gymId, { date } = {}) => {
-  const target = date === undefined ? todayUtc() : parseDate(date);
+export const listTodayClasses = async (gymId, { date, userId } = {}) => {
+  let target;
+  if (date === undefined) {
+    const gym = await gymRepository.findTimezoneById(gymId);
+    target = parseDate(localDateAndMinutes(gym?.timezone, new Date()).date);
+  } else {
+    target = parseDate(date);
+  }
 
   if (!target) throw new Error("INVALID_DATE");
 
-  return await gymClassRepository.findByGymAndDate(gymId, target);
+  const classes = await gymClassRepository.findByGymAndDate(gymId, target);
+  const enrolledIds = new Set(
+    await gymClassEnrollmentRepository.findEnrolledClassIds(
+      userId,
+      classes.map((cls) => cls.id),
+    ),
+  );
+
+  return classes.map((cls) => ({ ...cls, is_enrolled: enrolledIds.has(cls.id) }));
 };
 
 export const createClass = async (gymId, payload) => {
@@ -121,7 +163,7 @@ export const createClass = async (gymId, payload) => {
     duration_minutes: payload.duration_minutes,
     room: payload.room,
     capacity: payload.capacity,
-    enrolled: payload.enrolled ?? 0,
+    enrolled: 0,
     color: payload.color,
   };
 
@@ -151,6 +193,10 @@ export const updateClass = async (gymId, classId, payload) => {
 
   validateClassFields({ ...existing, ...data });
 
+  if (data.capacity !== undefined && data.capacity < existing.enrolled) {
+    throw new Error("CAPACITY_BELOW_ENROLLED");
+  }
+
   return await gymClassRepository.update(classId, data);
 };
 
@@ -159,4 +205,31 @@ export const deleteClass = async (gymId, classId) => {
   if (!existing || existing.gym_id !== gymId) throw new Error("CLASS_NOT_FOUND");
 
   await gymClassRepository.remove(classId);
+};
+
+export const enrollInClass = async (gymId, classId, { userId, membershipStatus }) => {
+  const cls = await findClassInGym(gymId, classId);
+
+  if (membershipStatus !== "ACTIVE") throw new Error("MEMBERSHIP_INACTIVE");
+  if (hasClassStarted(cls)) throw new Error("CLASS_ALREADY_STARTED");
+
+  await gymClassEnrollmentRepository.enrollUser(classId, userId);
+
+  return await gymClassRepository.findById(classId);
+};
+
+export const cancelEnrollment = async (gymId, classId, userId) => {
+  const cls = await findClassInGym(gymId, classId);
+
+  if (hasClassStarted(cls)) throw new Error("CLASS_ALREADY_STARTED");
+
+  await gymClassEnrollmentRepository.cancelEnrollment(classId, userId);
+
+  return await gymClassRepository.findById(classId);
+};
+
+export const listEnrollments = async (gymId, classId) => {
+  await findClassInGym(gymId, classId);
+
+  return await gymClassEnrollmentRepository.listEnrollments(classId);
 };

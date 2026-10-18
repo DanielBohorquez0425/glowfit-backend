@@ -10,7 +10,6 @@ const BODY_FIELDS = [
   "room",
   "capacity",
   "color",
-  "enrolled",
 ];
 
 const VALIDATION_ERRORS = {
@@ -23,14 +22,26 @@ const VALIDATION_ERRORS = {
   INVALID_START:
     "La hora de inicio es inválida o la clase termina después de medianoche",
   INVALID_INPUT: "Datos de la clase inválidos o incompletos",
-  ENROLLED_EXCEEDS_CAPACITY: "Los inscritos no pueden superar el aforo",
+  CAPACITY_BELOW_ENROLLED:
+    "El aforo no puede ser menor que el número de inscritos",
+  CLASS_ALREADY_STARTED: "La clase ya comenzó",
   INSTRUCTOR_NOT_IN_GYM: "El entrenador no pertenece a este gimnasio",
   INSTRUCTOR_NOT_TRAINER: "El usuario seleccionado no tiene rol de entrenador",
 };
 
 const NOT_FOUND_ERRORS = {
   CLASS_NOT_FOUND: "Clase no encontrada",
+  NOT_ENROLLED: "No estás inscrito en esta clase",
   INSTRUCTOR_NOT_FOUND: "Entrenador no encontrado",
+};
+
+const CONFLICT_ERRORS = {
+  CLASS_FULL: "La clase no tiene cupos disponibles",
+  ALREADY_ENROLLED: "Ya estás inscrito en esta clase",
+};
+
+const FORBIDDEN_ERRORS = {
+  MEMBERSHIP_INACTIVE: "Tu membresía no está activa",
 };
 
 const pickBodyFields = (body = {}) => {
@@ -66,6 +77,12 @@ const handleError = (res, error, logMessage) => {
   if (NOT_FOUND_ERRORS[error.message]) {
     return res.status(404).json({ error: NOT_FOUND_ERRORS[error.message] });
   }
+  if (CONFLICT_ERRORS[error.message]) {
+    return res.status(409).json({ error: CONFLICT_ERRORS[error.message] });
+  }
+  if (FORBIDDEN_ERRORS[error.message]) {
+    return res.status(403).json({ error: FORBIDDEN_ERRORS[error.message] });
+  }
   if (error.code === "P2025") {
     return res.status(404).json({ error: "Clase no encontrada" });
   }
@@ -91,9 +108,18 @@ export const listTodayClasses = async (req, res) => {
     const { gymId } = req.params;
     const { date } = req.query;
 
-    const classes = await gymClassService.listTodayClasses(gymId, { date });
+    const classes = await gymClassService.listTodayClasses(gymId, {
+      date,
+      userId: req.user.userId,
+    });
 
-    res.json({ success: true, data: classes.map(toClassDto) });
+    res.json({
+      success: true,
+      data: classes.map((cls) => ({
+        ...toClassDto(cls),
+        is_enrolled: cls.is_enrolled,
+      })),
+    });
   } catch (error) {
     handleError(res, error, "Error al obtener clases del día:");
   }
@@ -139,5 +165,64 @@ export const deleteClass = async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     handleError(res, error, "Error al eliminar la clase:");
+  }
+};
+
+export const enrollInClass = async (req, res) => {
+  try {
+    const { gymId, classId } = req.params;
+
+    const updated = await gymClassService.enrollInClass(gymId, classId, {
+      userId: req.user.userId,
+      membershipStatus: req.gymMembership.status,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: { ...toClassDto(updated), is_enrolled: true },
+    });
+  } catch (error) {
+    handleError(res, error, "Error al inscribirse en la clase:");
+  }
+};
+
+export const cancelEnrollment = async (req, res) => {
+  try {
+    const { gymId, classId } = req.params;
+
+    const updated = await gymClassService.cancelEnrollment(
+      gymId,
+      classId,
+      req.user.userId,
+    );
+
+    res.json({
+      success: true,
+      data: { ...toClassDto(updated), is_enrolled: false },
+    });
+  } catch (error) {
+    handleError(res, error, "Error al cancelar la inscripción:");
+  }
+};
+
+export const listEnrollments = async (req, res) => {
+  try {
+    const { gymId, classId } = req.params;
+
+    const enrollments = await gymClassService.listEnrollments(gymId, classId);
+
+    res.json({
+      success: true,
+      data: enrollments.map((enrollment) => ({
+        id: enrollment.id,
+        user_id: enrollment.user_id,
+        name: enrollment.user.name,
+        last_name: enrollment.user.last_name,
+        email: enrollment.user.email,
+        enrolled_at: enrollment.created_at,
+      })),
+    });
+  } catch (error) {
+    handleError(res, error, "Error al obtener inscritos de la clase:");
   }
 };
