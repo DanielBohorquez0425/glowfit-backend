@@ -145,3 +145,16 @@ export const listPayments = async (gymId, { range = "all", limit = 20, offset = 
 
   return { payments, total, summary };
 };
+
+/**
+ * Historial de facturación de un usuario.
+ *
+ * @param {string} userId
+ * @param {Object} options
+ * @param {number} options.limit
+ * @param {number} options.offset
+ * @returns {{ payments: Array, total: number }}
+ */
+export const listUserPayments = async (userId, { limit, offset } = {}) => {
+  return await gymPaymentRepository.findByUserId(userId, { limit, offset });
+};

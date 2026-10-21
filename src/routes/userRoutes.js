@@ -22,6 +22,7 @@ import {
   unassignTrainer,
   deleteUser,
 } from "../controllers/userController.js";
+import { listMyPayments } from "../controllers/gymPaymentController.js";
 import { authenticateToken } from "../middlewares/authMiddleware.js";
 import { authLimiter, googleAuthLimiter } from "../middlewares/rateLimitMiddleware.js";
 
@@ -41,6 +42,7 @@ router.post("/create-gym-admin", authenticateToken, createGymAdmin);
 router.post("/logout", authenticateToken, logout);
 router.get("/all-users", authenticateToken, getUsers);
 router.get("/profile", authenticateToken, getProfile);
+router.get("/profile/payments", authenticateToken, listMyPayments);
 router.patch("/profile/switch-role", authenticateToken, switchActiveRole);
 router.get("/:id/activity", authenticateToken, getUserActivity);
 router.get("/:id/activity/weekly", authenticateToken, getWeeklyActivity);

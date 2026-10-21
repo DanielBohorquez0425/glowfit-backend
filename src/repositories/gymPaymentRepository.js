@@ -65,6 +65,36 @@ export const findByGymId = async (gymId, { from, limit = 20, offset = 0 } = {}) 
 };
 
 /**
+ * Lista los pagos de un usuario con paginación (historial de facturación).
+ * Los pagos anulados quedan fuera.
+ *
+ * @param {string} userId
+ * @param {Object} options
+ * @param {number} options.limit
+ * @param {number} options.offset
+ * @returns {{ payments: Array, total: number }}
+ */
+export const findByUserId = async (userId, { limit = 20, offset = 0 } = {}) => {
+  const where = { user_id: userId, voided_at: null };
+
+  const [payments, total] = await Promise.all([
+    prisma.gym_plan_payments.findMany({
+      where,
+      include: {
+        gym_plans: { select: { duration_value: true, duration_unit: true } },
+        gyms: { select: { name: true } },
+      },
+      orderBy: { paid_at: "desc" },
+      take: limit,
+      skip: offset,
+    }),
+    prisma.gym_plan_payments.count({ where }),
+  ]);
+
+  return { payments, total };
+};
+
+/**
  * Suma de los pagos del rango completo, no de la página actual.
  *
  * @param {string} gymId

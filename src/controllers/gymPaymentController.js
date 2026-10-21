@@ -149,3 +149,60 @@ export const listPayments = async (req, res) => {
     res.status(500).json({ error: "Error interno al obtener los movimientos de caja." });
   }
 };
+
+/**
+ * GET /users/profile/payments
+ *
+ * Historial de facturación del usuario autenticado. El userId sale siempre del
+ * token, nunca de los params: nadie puede ver la facturación de otro usuario.
+ *
+ * Query params:
+ *   - page (default: 1)
+ *   - limit (default: 20, max: 100)
+ *
+ * `duration` viene del plan y es null si el plan fue eliminado; el período
+ * vigente real es `start_date`/`end_date`.
+ */
+export const listMyPayments = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+    const offset = (page - 1) * limit;
+
+    const { payments, total } = await gymPaymentService.listUserPayments(req.user.userId, {
+      limit,
+      offset,
+    });
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: payments.map((payment) => ({
+        id: payment.id,
+        gym_name: payment.gyms?.name ?? null,
+        plan_name: payment.plan_name,
+        amount: Number(payment.amount),
+        currency: payment.currency,
+        payment_method: payment.payment_method,
+        paid_at: payment.paid_at,
+        start_date: payment.start_date,
+        end_date: payment.end_date,
+        duration: payment.gym_plans
+          ? { value: payment.gym_plans.duration_value, unit: payment.gym_plans.duration_unit }
+          : null,
+      })),
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    });
+  } catch (error) {
+    console.error("Error al obtener el historial de pagos:", error);
+    res.status(500).json({ error: "Error interno al obtener el historial de pagos." });
+  }
+};
